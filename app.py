@@ -312,6 +312,7 @@ def process_frame():
                 exercise_engine.draw_status_overlay(frame, exercise_goal, sets_goal, sets_completed)
                 exercise_engine.draw_form_score(frame)
                 current_reps = exercise_engine.get_counter()
+                print(f"[REPS DEBUG] Current Rep Count: {current_reps}", flush=True)
                 
                 # Check if rep goal is reached
                 if current_reps >= exercise_goal:
