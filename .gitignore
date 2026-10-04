@@ -15,6 +15,10 @@ ENV/
 *.swp
 *.swo
 
+# Environment
+.env
+.env.*
+
 # Logs
 *.log
 

@@ -9,5 +9,9 @@ pyyaml>=6.0.0
 imageio>=2.31.0
 imageio-ffmpeg>=0.4.8
 
+# Production server & AWS SDK
+gunicorn>=20.1.0
+boto3>=1.26.0
+
 # Optional: For better chart rendering in dashboard (included via CDN)
 # matplotlib>=3.5.0
