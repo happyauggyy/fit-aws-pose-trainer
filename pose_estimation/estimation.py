@@ -10,15 +10,20 @@ class PoseEstimator:
             static_mode: True for image/video analysis (less memory), False for real-time
             model_complexity: 0=Lite, 1=Full, 2=Heavy (0 uses least memory)
         """
-        self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose(
-            static_image_mode=static_mode,
-            model_complexity=model_complexity,
-            enable_segmentation=False,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
-        self.mp_drawing = mp.solutions.drawing_utils
+        if hasattr(mp, 'solutions'):
+            self.mp_pose = mp.solutions.pose
+            self.pose = self.mp_pose.Pose(
+                static_image_mode=static_mode,
+                model_complexity=model_complexity,
+                enable_segmentation=False,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+            self.mp_drawing = mp.solutions.drawing_utils
+        else:
+            self.mp_pose = None
+            self.pose = None
+            self.mp_drawing = None
     
     def close(self):
         """Release resources"""
@@ -27,6 +32,11 @@ class PoseEstimator:
             self.pose = None
 
     def estimate_pose(self, frame, exercise_type):
+        if not self.pose:
+            class DummyResults:
+                pose_landmarks = None
+            return DummyResults()
+
         # BGR to RGB
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
