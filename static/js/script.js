@@ -38,8 +38,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cameraStarted) return;
         
         console.log('Starting camera...');
-        videoElement.src = '/video_feed';
-        videoElement.style.display = 'block';
+        if (typeof window.startWebcamFeed === 'function') {
+            window.startWebcamFeed();
+            cameraStarted = true;
+            return;
+        }
+
+        if (videoElement && videoElement.tagName !== 'VIDEO') {
+            videoElement.src = '/video_feed';
+        }
+        if (videoElement) {
+            videoElement.style.display = 'block';
+        }
         if (videoPlaceholder) {
             videoPlaceholder.style.display = 'none';
         }
@@ -50,8 +60,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!cameraStarted) return;
         
         console.log('Stopping camera...');
-        videoElement.src = '';
-        videoElement.style.display = 'none';
+        if (videoElement && videoElement.srcObject) {
+            try {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+            } catch (e) {
+                console.warn('Error stopping tracks:', e);
+            }
+            videoElement.srcObject = null;
+        }
+        if (videoElement) {
+            videoElement.src = '';
+            videoElement.style.display = 'none';
+        }
         if (videoPlaceholder) {
             videoPlaceholder.style.display = 'flex';
         }

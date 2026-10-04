@@ -23,11 +23,11 @@
                 <div id="video-placeholder" class="video-placeholder">
                     <div class="placeholder-content">
                         <div class="placeholder-icon">📹</div>
-                        <p>Click to start camera</p>
+                        <p id="camera-status-text">Click to start camera</p>
                         <button id="start-camera-btn" class="btn primary-btn">Start Camera</button>
                     </div>
                 </div>
-                <img id="video" src="" alt="Fitness Tracker Video Feed" style="display: none;">
+                <video id="video" autoplay playsinline muted style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
             </div>
             
             <div class="controls">
@@ -107,5 +107,99 @@
     </div>
     
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- Client-side HTML5 Camera Capture Setup for Render / Browser Webcam -->
+    <script>
+        (function() {
+            const video = document.getElementById('video') || document.querySelector('video');
+            const startCameraBtn = document.getElementById('start-camera-btn');
+            const placeholder = document.getElementById('video-placeholder');
+            const statusText = document.getElementById('camera-status-text');
+            let localMediaStream = null;
+
+            async function startCamera() {
+                // Ensure getUserMedia is available in current context
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    const msg = 'Camera API is not supported by your browser or requires HTTPS. When hosted on Render, please access via https://';
+                    console.error(msg);
+                    if (statusText) {
+                        statusText.textContent = msg;
+                        statusText.style.color = '#ff6b6b';
+                    }
+                    alert(msg);
+                    return;
+                }
+
+                // Camera resolution & constraints
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                };
+
+                try {
+                    console.log('Requesting webcam access via getUserMedia...');
+                    if (statusText) {
+                        statusText.textContent = 'Requesting camera permissions...';
+                    }
+
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    localMediaStream = stream;
+
+                    if (video) {
+                        video.srcObject = stream;
+                        video.style.display = 'block';
+                        video.onloadedmetadata = () => {
+                            video.play().catch(e => console.warn('Autoplay prevented:', e));
+                        };
+                    }
+
+                    if (placeholder) {
+                        placeholder.style.display = 'none';
+                    }
+                    console.log('Local webcam feed active and displaying live video.');
+                } catch (err) {
+                    console.error('Error starting webcam:', err);
+                    let userMsg = 'Could not access the camera. ';
+                    
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        userMsg += 'Camera permission was denied. Please allow camera permissions in your browser settings or address bar.';
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        userMsg += 'No camera found. Please connect a webcam.';
+                    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                        userMsg += 'Camera is currently in use by another application.';
+                    } else if (window.isSecureContext === false) {
+                        userMsg += 'Camera permissions require a secure HTTPS connection. Please ensure your Render URL begins with https://';
+                    } else {
+                        userMsg += err.message || err.name;
+                    }
+
+                    if (statusText) {
+                        statusText.textContent = userMsg;
+                        statusText.style.color = '#ff6b6b';
+                    }
+                    alert(userMsg);
+                }
+            }
+
+            // Bind click event to Start Camera button
+            if (startCameraBtn) {
+                startCameraBtn.addEventListener('click', startCamera);
+            }
+
+            // Expose globally so external scripts or buttons can invoke it if needed
+            window.startWebcamFeed = startCamera;
+
+            // Stop webcam tracks on page exit
+            window.addEventListener('beforeunload', function() {
+                if (localMediaStream) {
+                    localMediaStream.getTracks().forEach(track => track.stop());
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

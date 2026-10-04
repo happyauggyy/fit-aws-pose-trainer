@@ -71,7 +71,8 @@ header p {
     position: relative;
 }
 
-.video-container img {
+.video-container img,
+.video-container video {
     width: 100%;
     height: auto;
     display: block;
