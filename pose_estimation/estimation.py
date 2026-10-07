@@ -16,8 +16,8 @@ class PoseEstimator:
                 static_image_mode=static_mode,
                 model_complexity=model_complexity,
                 enable_segmentation=False,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
+                min_detection_confidence=0.3,
+                min_tracking_confidence=0.3
             )
             self.mp_drawing = mp.solutions.drawing_utils
         else:
@@ -37,10 +37,10 @@ class PoseEstimator:
                 pose_landmarks = None
             return DummyResults()
 
-        # BGR to RGB
+        # MediaPipe requires RGB — convert from OpenCV's default BGR
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # Pose estimate
+        # Run pose inference
         results = self.pose.process(rgb_frame)
 
         # Draw landmarks and specific connections based on exercise type
