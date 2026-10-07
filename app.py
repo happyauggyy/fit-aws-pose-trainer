@@ -17,6 +17,24 @@ import base64
 import uuid
 import numpy as np
 
+# ---------------------------------------------------------------------------
+# Global persistent rep-counter state (survives across requests in the same
+# worker process; gunicorn --workers=1 guarantees a single process).
+# ---------------------------------------------------------------------------
+global_rep_counter = 0
+global_exercise_stage = "down"
+
+def calculate_angle(a, b, c):
+    """Return the elbow angle (degrees) formed by three MediaPipe landmarks."""
+    a = np.array([a.x, a.y])
+    b = np.array([b.x, b.y])
+    c = np.array([c.x, c.y])
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+    if angle > 180.0:
+        angle = 360 - angle
+    return angle
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, 
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -301,30 +319,38 @@ def process_frame():
     ex_name = exercise_engine.exercise_name if (exercise_running and exercise_engine.exercise) else None
     results = pose_estimator.estimate_pose(frame, ex_name)
 
+    global global_rep_counter, global_exercise_stage
+
     current_reps = 0
     form_score = 100
     form_grade = 'A'
 
-    # Safety default: ensure an exercise is always loaded
-    if not exercise_engine.exercise:
-        exercise_engine.set_exercise("biceps_curl")
-
     if results.pose_landmarks:
-        result = exercise_engine.process_frame(frame, results.pose_landmarks.landmark)
-        if result.get("success"):
-            exercise_engine.draw_status_overlay(frame, exercise_goal, sets_goal, sets_completed)
-            exercise_engine.draw_form_score(frame)
-            current_reps = exercise_engine.get_counter()
-            print(f"[REPS DEBUG] Current Rep Count: {current_reps}", flush=True)
-        else:
-            print(f"[REPS DEBUG] Frame failed: {result.get('error')}", flush=True)
+        landmarks = results.pose_landmarks.landmark
+        shoulder = landmarks[12]
+        elbow    = landmarks[14]
+        wrist    = landmarks[16]
+
+        angle = calculate_angle(shoulder, elbow, wrist)
+
+        if angle > 150:
+            global_exercise_stage = "down"
+        if angle < 45 and global_exercise_stage == "down":
+            global_exercise_stage = "up"
+            global_rep_counter += 1
+            print(f"[REPS DEBUG] >>> REP COUNTED! Total: {global_rep_counter} <<<", flush=True)
+
+        current_reps = global_rep_counter
+        print(f"[REPS DEBUG] Elbow Angle: {int(angle)}° | State: {global_exercise_stage} | Reps: {current_reps}", flush=True)
     else:
-        print("[REPS DEBUG] No body landmarks detected by MediaPipe", flush=True)
+        print("[REPS DEBUG] No landmarks visible", flush=True)
+        current_reps = global_rep_counter
 
     # Check if rep goal is reached
-    if current_reps >= exercise_goal:
+    if current_reps >= exercise_goal and exercise_goal > 0:
         sets_completed += 1
-        exercise_engine.reset()
+        global_rep_counter = 0
+        global_exercise_stage = "down"
         if sets_completed >= sets_goal:
             exercise_running = False
             avg_score = exercise_engine.exercise.avg_form_score if exercise_engine.exercise else 0
@@ -342,23 +368,6 @@ def process_frame():
             draw_text_with_background(frame, f"SET {sets_completed} COMPLETE! Rest for 30 sec",
                                     (frame.shape[1]//2 - 200, frame.shape[0]//2),
                                     cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 0, 200), 2)
-
-    if exercise_running and exercise_engine.exercise:
-        current_reps = exercise_engine.get_counter() if exercise_engine.exercise else 0
-        ex_status = exercise_engine.get_status()
-        form_score = ex_status.get('form_score', 100)
-        form_grade = ex_status.get('form_grade', 'A')
-    else:
-        # Draw all landmarks and skeleton connections when no exercise is active
-        if results and results.pose_landmarks and getattr(pose_estimator, 'mp_drawing', None):
-            pose_estimator.mp_drawing.draw_landmarks(
-                frame,
-                results.pose_landmarks,
-                pose_estimator.mp_pose.POSE_CONNECTIONS,
-                pose_estimator.mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=3),
-                pose_estimator.mp_drawing.DrawingSpec(color=(0, 200, 255), thickness=2)
-            )
-        current_reps = 0
 
     # Encode back to JPEG base64
     ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
