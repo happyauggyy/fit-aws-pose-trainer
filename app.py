@@ -144,6 +144,34 @@ def get_pose_estimator():
             _pose_estimator = PoseEstimator()
         return _pose_estimator
 
+# Global MediaPipe Pose instance for web POST requests (static_image_mode=True)
+_web_pose = None
+_web_pose_lock = threading.Lock()
+
+def get_web_pose():
+    """Get or create MediaPipe Pose instance with static_image_mode=True for web requests"""
+    global _web_pose
+    with _web_pose_lock:
+        if _web_pose is None:
+            try:
+                import mediapipe as mp
+                if hasattr(mp, 'solutions'):
+                    _web_pose = mp.solutions.pose.Pose(
+                        static_image_mode=True,
+                        model_complexity=0,
+                        enable_segmentation=False,
+                        min_detection_confidence=0.2,
+                        min_tracking_confidence=0.2
+                    )
+            except Exception as e:
+                logger.error(f"Failed to initialize web pose: {e}")
+                _web_pose = None
+            if _web_pose is None:
+                estimator = get_pose_estimator()
+                if estimator and hasattr(estimator, 'pose'):
+                    _web_pose = estimator.pose
+        return _web_pose
+
 def generate_frames():
     global output_frame, lock, exercise_running, exercise_engine
     global exercise_goal, sets_completed, sets_goal
@@ -295,14 +323,14 @@ def dashboard():
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
-    """Process a single frame from the client webcam, run pose estimation and return keypoint-overlaid image with rep count."""
+    """Process a single frame from the client webcam, run pose estimation and return rep count."""
     global exercise_running, exercise_engine, exercise_goal, sets_completed, sets_goal, workout_start_time
     global global_rep_counter, global_exercise_stage
     
     data = request.get_json(silent=True) or {}
     image_data = data.get('image') or data.get('frame')
     if not image_data:
-        return jsonify({'error': 'No image data provided', 'reps': 0, 'rep_count': 0, 'success': False}), 400
+        return jsonify({'error': 'No image data provided', 'reps': 0, 'success': False}), 400
 
     if ',' in image_data:
         image_data = image_data.split(',', 1)[1]
@@ -312,9 +340,9 @@ def process_frame():
         nparr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if frame is None:
-            return jsonify({'error': 'Failed to decode image', 'reps': 0, 'rep_count': 0, 'success': False}), 400
+            return jsonify({'error': 'Failed to decode image', 'reps': 0, 'success': False}), 400
     except Exception as e:
-        return jsonify({'error': f'Image decode error: {e}', 'reps': 0, 'rep_count': 0, 'success': False}), 400
+        return jsonify({'error': f'Image decode error: {e}', 'reps': 0, 'success': False}), 400
 
     # --- Frame preprocessing ---
     # 1. Brightness check – skip very dark / black frames
@@ -329,21 +357,14 @@ def process_frame():
         new_h = int(h * (640 / w))
         frame = cv2.resize(frame, (new_w, new_h))
 
-    # 3. Convert BGR → RGB for MediaPipe and mark non-writeable for perf
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    rgb_frame.flags.writeable = False
+    # 3. Convert decoded OpenCV image to RGB
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    # 4. Run pose estimation
-    pose_estimator = get_pose_estimator()
-    pose = pose_estimator
-    ex_name = exercise_engine.exercise_name if (exercise_running and exercise_engine.exercise) else None
-    results = pose_estimator.estimate_pose(frame, ex_name)
+    # 4. MediaPipe Pose inference with static_image_mode=True
+    pose = get_web_pose()
+    results = pose.process(rgb) if pose else None
 
-    current_reps = 0
-    form_score = 100
-    form_grade = 'A'
-
-    if results.pose_landmarks:
+    if results and results.pose_landmarks:
         landmarks = results.pose_landmarks.landmark
         shoulder = landmarks[12]
         elbow    = landmarks[14]
@@ -358,52 +379,11 @@ def process_frame():
             global_rep_counter += 1
             print(f"[REPS DEBUG] >>> REP COUNTED! Total: {global_rep_counter} <<<", flush=True)
 
-        current_reps = global_rep_counter
-        print(f"[REPS DEBUG] Elbow Angle: {int(angle)}° | State: {global_exercise_stage} | Reps: {current_reps}", flush=True)
+        print(f"[REPS DEBUG] Elbow Angle: {int(angle)}° | State: {global_exercise_stage} | Reps: {global_rep_counter}", flush=True)
+        return jsonify({'reps': global_rep_counter, 'success': True})
     else:
         print("[REPS DEBUG] No landmarks visible", flush=True)
-        current_reps = global_rep_counter
-
-    # Check if rep goal is reached
-    if current_reps >= exercise_goal and exercise_goal > 0:
-        sets_completed += 1
-        global_rep_counter = 0
-        global_exercise_stage = "down"
-        if sets_completed >= sets_goal:
-            exercise_running = False
-            avg_score = exercise_engine.exercise.avg_form_score if exercise_engine.exercise else 0
-            draw_text_with_background(frame, f"WORKOUT COMPLETE! Avg Score: {avg_score}",
-                                    (frame.shape[1]//2 - 200, frame.shape[0]//2),
-                                    cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 200, 0), 2)
-            # Attempt to log to AWS
-            try:
-                from aws_logger import save_workout_to_aws
-                student_id = session.get('student_id', 'STUDENT_001')
-                save_workout_to_aws(student_id, current_exercise_type or "workout", exercise_goal, avg_score)
-            except Exception as aws_err:
-                logger.warning(f"AWS logger call exception: {aws_err}")
-        else:
-            draw_text_with_background(frame, f"SET {sets_completed} COMPLETE! Rest for 30 sec",
-                                    (frame.shape[1]//2 - 200, frame.shape[0]//2),
-                                    cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 0, 200), 2)
-
-    # Encode back to JPEG base64
-    ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-    if not ret:
-        return jsonify({'error': 'Failed to encode processed image', 'reps': current_reps, 'rep_count': current_reps, 'success': False}), 500
-
-    processed_b64 = base64.b64encode(buffer).decode('utf-8')
-    processed_uri = f"data:image/jpeg;base64,{processed_b64}"
-
-    return jsonify({
-        'image': processed_uri,
-        'processed_image': processed_uri,
-        'reps': current_reps,
-        'rep_count': current_reps,
-        'form_score': form_score,
-        'form_grade': form_grade,
-        'success': True
-    })
+        return jsonify({'reps': global_rep_counter, 'success': False})
 
 @app.route('/video_feed', methods=['GET', 'POST'])
 def video_feed():

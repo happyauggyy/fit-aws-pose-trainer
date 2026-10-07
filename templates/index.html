@@ -27,12 +27,8 @@
                         <button id="start-camera-btn" class="btn primary-btn">Start Camera</button>
                     </div>
                 </div>
-                <!-- Local Webcam Video Feed (Hidden source for frame capture) -->
-                <video id="video" autoplay playsinline muted style="display: none;"></video>
-                <!-- Invisible canvas for capturing frames into base64 -->
-                <canvas id="capture-canvas" style="display: none;"></canvas>
-                <!-- Processed image displaying AI keypoint overlay from Flask -->
-                <img id="processed-feed" alt="Processed Video Feed with Keypoints" style="display: none; width: 100%; height: auto; object-fit: cover;">
+                <!-- Local Webcam Video Feed -->
+                <video id="webcam" autoplay playsinline muted style="display: none;"></video>
             </div>
             
             <div class="controls">
@@ -117,13 +113,14 @@
     <!-- Client-side HTML5 Camera Capture and Frame Processing Loop for Render -->
     <script>
         (function() {
-            const video = document.getElementById('video') || document.querySelector('video');
-            const canvas = document.getElementById('capture-canvas') || document.querySelector('canvas') || document.createElement('canvas');
-            const processedFeed = document.getElementById('processed-feed') || document.querySelector('.video-container img') || document.querySelector('img');
-            const repCountElem = document.getElementById('rep-count');
+            const videoElement = document.getElementById('webcam') || document.querySelector('video');
             const startCameraBtn = document.getElementById('start-camera-btn');
             const placeholder = document.getElementById('video-placeholder');
             const statusText = document.getElementById('camera-status-text');
+
+            // Off-screen canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
             let localMediaStream = null;
             let isStreaming = false;
@@ -132,77 +129,38 @@
 
             async function captureAndSendFrame() {
                 if (!isStreaming || isProcessing) return;
-                if (!video || video.paused || video.ended) return;
-                if (video.videoWidth === 0 || video.videoHeight === 0) return;
+                if (!videoElement || videoElement.paused || videoElement.ended) return;
+                if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return;
 
                 isProcessing = true;
                 try {
-                    // Draw video frame to invisible canvas — use fallback dims if stream not ready
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    canvas.width = videoElement.videoWidth || 640;
+                    canvas.height = videoElement.videoHeight || 480;
+                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    const dataURL = canvas.toDataURL('image/jpeg', 0.6);
 
-                    // Convert to JPEG base64 string (quality 0.7)
-                    const base64Data = canvas.toDataURL('image/jpeg', 0.7);
+                    const response = await fetch('/process_frame', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: dataURL })
+                    });
 
-                    // Send POST request to /process_frame (with fallback to /video_feed)
-                    let response;
-                    try {
-                        response = await fetch('/process_frame', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ image: base64Data })
-                        });
-                        if (!response.ok && response.status === 404) {
-                            response = await fetch('/video_feed', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ image: base64Data })
-                            });
-                        }
-                    } catch (netErr) {
-                        response = await fetch('/video_feed', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ image: base64Data })
-                        });
-                    }
-
-                    if (response && response.ok) {
+                    if (response.ok) {
                         const data = await response.json();
-
-                        // Display the processed image response with keypoints overlaid on <img> tag
-                        const imgSource = data.image || data.processed_image || data.frame;
-                        if (imgSource && processedFeed) {
-                            processedFeed.src = imgSource.startsWith('data:') ? imgSource : `data:image/jpeg;base64,${imgSource}`;
-                            processedFeed.style.display = 'block';
-                            if (placeholder) {
-                                placeholder.style.display = 'none';
+                        if (data && data.reps !== undefined) {
+                            const repEl = document.getElementById('rep-count');
+                            if (repEl) {
+                                repEl.innerText = `Reps: ${data.reps}`;
                             }
-                        }
-
-                        // Update live Reps text on screen using the JSON response from Flask
-                        const reps = data.reps !== undefined ? data.reps : (data.rep_count !== undefined ? data.rep_count : 0);
-                        if (repCountElem) {
-                            repCountElem.textContent = `Reps: ${reps}`;
-                        }
-
-                        // Also update current reps in status display if available
-                        const currentRepsElem = document.getElementById('current-reps');
-                        if (currentRepsElem && currentRepsElem.textContent.includes('/')) {
-                            const parts = currentRepsElem.textContent.split('/');
-                            currentRepsElem.textContent = `${reps} /${parts[1]}`;
-                        }
-
-                        // Update form score and grade if available in response
-                        if (data.form_score !== undefined) {
-                            const formScoreElem = document.getElementById('form-score');
-                            if (formScoreElem) formScoreElem.textContent = Math.round(data.form_score);
-                        }
-                        if (data.form_grade !== undefined) {
-                            const formGradeElem = document.getElementById('form-grade');
-                            if (formGradeElem) formGradeElem.textContent = data.form_grade;
+                            const currentRepsElem = document.getElementById('current-reps');
+                            if (currentRepsElem) {
+                                const parts = currentRepsElem.textContent.split('/');
+                                if (parts.length > 1) {
+                                    currentRepsElem.textContent = `${data.reps} /${parts[1]}`;
+                                } else {
+                                    currentRepsElem.textContent = data.reps;
+                                }
+                            }
                         }
                     }
                 } catch (err) {
@@ -226,36 +184,36 @@
                     return;
                 }
 
-                const constraints = {
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    },
-                    audio: false
-                };
-
                 try {
                     console.log('Starting camera and capturing webcam stream...');
                     if (statusText) {
                         statusText.textContent = 'Requesting camera permissions...';
                     }
 
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            facingMode: 'user'
+                        },
+                        audio: false
+                    });
+
                     localMediaStream = stream;
 
-                    if (video) {
-                        video.srcObject = stream;
-                        video.onloadedmetadata = () => {
-                            video.play().catch(e => console.warn('Autoplay error:', e));
+                    if (videoElement) {
+                        videoElement.srcObject = stream;
+                        videoElement.style.display = 'block';
+                        videoElement.onloadedmetadata = () => {
+                            videoElement.play().catch(e => console.warn('Autoplay error:', e));
                         };
-                        video.onplaying = () => {
+                        videoElement.onplaying = () => {
                             isStreaming = true;
                             if (placeholder) {
                                 placeholder.style.display = 'none';
                             }
                             if (!captureIntervalId) {
-                                captureIntervalId = setInterval(captureAndSendFrame, 65); // ~15 FPS
+                                captureIntervalId = setInterval(captureAndSendFrame, 80); // ~12 FPS
                             }
                             console.log('Continuous frame processing loop active and streaming.');
                         };
@@ -264,17 +222,12 @@
                     console.error('Camera access error:', err);
                     let userMsg = 'Could not access the camera. ';
                     if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        userMsg += 'Camera permission was denied. Please allow camera permissions in your browser settings or address bar.';
+                        userMsg += 'Camera permission was denied. Please allow camera permissions in your browser settings.';
                     } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
                         userMsg += 'No camera found. Please connect a webcam.';
-                    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                        userMsg += 'Camera is currently in use by another application.';
-                    } else if (window.isSecureContext === false) {
-                        userMsg += 'Camera permissions require a secure HTTPS connection. Please ensure your Render URL begins with https://';
                     } else {
                         userMsg += err.message || err.name;
                     }
-
                     if (statusText) {
                         statusText.textContent = userMsg;
                         statusText.style.color = '#ff6b6b';
@@ -293,13 +246,9 @@
                     localMediaStream.getTracks().forEach(track => track.stop());
                     localMediaStream = null;
                 }
-                if (video) {
-                    video.srcObject = null;
-                    video.style.display = 'none';
-                }
-                if (processedFeed) {
-                    processedFeed.src = '';
-                    processedFeed.style.display = 'none';
+                if (videoElement) {
+                    videoElement.srcObject = null;
+                    videoElement.style.display = 'none';
                 }
                 if (placeholder) {
                     placeholder.style.display = 'flex';
@@ -307,16 +256,12 @@
                 fetch('/stop_camera', { method: 'POST' }).catch(() => {});
             }
 
-            // Bind click event to Start Camera button
             if (startCameraBtn) {
                 startCameraBtn.addEventListener('click', startCamera);
             }
 
-            // Expose globally so external scripts or buttons can invoke
             window.startWebcamFeed = startCamera;
             window.stopWebcamFeed = stopCamera;
-
-            // Stop webcam tracks on page exit
             window.addEventListener('beforeunload', stopCamera);
         })();
     </script>
