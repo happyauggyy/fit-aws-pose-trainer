@@ -326,11 +326,9 @@ def process_frame():
     """Process a single frame from the client webcam, run pose estimation and return rep count."""
     global exercise_running, exercise_engine, exercise_goal, sets_completed, sets_goal, workout_start_time
     global global_rep_counter, global_exercise_stage
-    
+
     data = request.get_json(silent=True) or {}
-    image_data = data.get('image') or data.get('frame')
-    if not image_data:
-        return jsonify({'error': 'No image data provided', 'reps': 0, 'success': False}), 400
+    image_data = data.get('image') or data.get('frame') or ''
 
     if ',' in image_data:
         image_data = image_data.split(',', 1)[1]
@@ -339,32 +337,37 @@ def process_frame():
         img_bytes = base64.b64decode(image_data)
         nparr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return jsonify({'error': 'Failed to decode image', 'reps': 0, 'success': False}), 400
     except Exception as e:
-        return jsonify({'error': f'Image decode error: {e}', 'reps': 0, 'success': False}), 400
+        return jsonify({'error': str(e), 'reps': global_rep_counter, 'success': False}), 400
 
-    # --- Frame preprocessing ---
-    # 1. Brightness check – skip very dark / black frames
-    mean_val = np.mean(frame)
-    if mean_val < 15.0:
+    if frame is None or frame.size == 0:
+        return jsonify({'error': 'Empty frame', 'reps': global_rep_counter, 'success': False}), 400
+
+    # Brightness check – skip very dark / black frames
+    if np.mean(frame) < 15.0:
         return jsonify({'reps': global_rep_counter, 'status': 'skipped_black_frame'}), 200
 
-    # 2. Resize to max width 640 while preserving aspect ratio
+    # Resize to max width 640 while preserving aspect ratio
     h, w = frame.shape[:2]
     if w > 640:
-        new_w = 640
-        new_h = int(h * (640 / w))
-        frame = cv2.resize(frame, (new_w, new_h))
+        frame = cv2.resize(frame, (640, int(h * (640 / w))))
 
-    # 3. Convert decoded OpenCV image to RGB
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # Convert BGR to RGB
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    # 4. MediaPipe Pose inference with static_image_mode=True
-    pose = get_web_pose()
-    results = pose.process(rgb) if pose else None
+    # Ensure a standalone MediaPipe Pose instance with static_image_mode=True
+    import mediapipe as mp
+    if not hasattr(app, 'mp_pose_instance'):
+        app.mp_pose_instance = mp.solutions.pose.Pose(
+            static_image_mode=True,
+            model_complexity=0,
+            min_detection_confidence=0.3,
+            min_tracking_confidence=0.3
+        )
 
-    if results and results.pose_landmarks:
+    results = app.mp_pose_instance.process(rgb_frame)
+
+    if results.pose_landmarks:
         landmarks = results.pose_landmarks.landmark
         shoulder = landmarks[12]
         elbow    = landmarks[14]
@@ -380,7 +383,7 @@ def process_frame():
             print(f"[REPS DEBUG] >>> REP COUNTED! Total: {global_rep_counter} <<<", flush=True)
 
         print(f"[REPS DEBUG] Elbow Angle: {int(angle)}° | State: {global_exercise_stage} | Reps: {global_rep_counter}", flush=True)
-        return jsonify({'reps': global_rep_counter, 'success': True})
+        return jsonify({'reps': global_rep_counter, 'angle': int(angle), 'stage': global_exercise_stage, 'success': True})
     else:
         print("[REPS DEBUG] No landmarks visible", flush=True)
         return jsonify({'reps': global_rep_counter, 'success': False})
