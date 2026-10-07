@@ -297,6 +297,7 @@ def dashboard():
 def process_frame():
     """Process a single frame from the client webcam, run pose estimation and return keypoint-overlaid image with rep count."""
     global exercise_running, exercise_engine, exercise_goal, sets_completed, sets_goal, workout_start_time
+    global global_rep_counter, global_exercise_stage
     
     data = request.get_json(silent=True) or {}
     image_data = data.get('image') or data.get('frame')
@@ -312,32 +313,31 @@ def process_frame():
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if frame is None:
             return jsonify({'error': 'Failed to decode image', 'reps': 0, 'rep_count': 0, 'success': False}), 400
-
-        # --- Frame preprocessing ---
-        # 1. Brightness check – skip very dark / black frames
-        mean_val = np.mean(frame)
-        if mean_val < 15.0:
-            return jsonify({'reps': global_rep_counter, 'status': 'skipped_black_frame'}), 200
-
-        # 2. Resize to max width 640 while preserving aspect ratio
-        h, w = frame.shape[:2]
-        if w > 640:
-            new_w = 640
-            new_h = int(h * (640 / w))
-            frame = cv2.resize(frame, (new_w, new_h))
-
-        # 3. Convert BGR → RGB for MediaPipe and mark non-writeable for perf
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        rgb_frame.flags.writeable = False
     except Exception as e:
         return jsonify({'error': f'Image decode error: {e}', 'reps': 0, 'rep_count': 0, 'success': False}), 400
 
-    # 4. Run pose estimation on the preprocessed RGB frame
-    pose_estimator = get_pose_estimator()
-    ex_name = exercise_engine.exercise_name if (exercise_running and exercise_engine.exercise) else None
-    results = pose_estimator.estimate_pose(rgb_frame, ex_name)
+    # --- Frame preprocessing ---
+    # 1. Brightness check – skip very dark / black frames
+    mean_val = np.mean(frame)
+    if mean_val < 15.0:
+        return jsonify({'reps': global_rep_counter, 'status': 'skipped_black_frame'}), 200
 
-    global global_rep_counter, global_exercise_stage
+    # 2. Resize to max width 640 while preserving aspect ratio
+    h, w = frame.shape[:2]
+    if w > 640:
+        new_w = 640
+        new_h = int(h * (640 / w))
+        frame = cv2.resize(frame, (new_w, new_h))
+
+    # 3. Convert BGR → RGB for MediaPipe and mark non-writeable for perf
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    rgb_frame.flags.writeable = False
+
+    # 4. Run pose estimation
+    pose_estimator = get_pose_estimator()
+    pose = pose_estimator
+    ex_name = exercise_engine.exercise_name if (exercise_running and exercise_engine.exercise) else None
+    results = pose_estimator.estimate_pose(frame, ex_name)
 
     current_reps = 0
     form_score = 100
