@@ -137,14 +137,14 @@
 
                 isProcessing = true;
                 try {
-                    // Draw video frame to invisible canvas
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    // Draw video frame to invisible canvas — use fallback dims if stream not ready
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    // Convert to JPEG base64 string
-                    const base64Data = canvas.toDataURL('image/jpeg', 0.65);
+                    // Convert to JPEG base64 string (quality 0.7)
+                    const base64Data = canvas.toDataURL('image/jpeg', 0.7);
 
                     // Send POST request to /process_frame (with fallback to /video_feed)
                     let response;

@@ -312,6 +312,7 @@ def process_frame():
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if frame is None:
             return jsonify({'error': 'Failed to decode image', 'reps': 0, 'rep_count': 0, 'success': False}), 400
+        print(f"[IMAGE DEBUG] Received Shape: {frame.shape} | Mean Brightness: {np.mean(frame):.1f}", flush=True)
     except Exception as e:
         return jsonify({'error': f'Image decode error: {e}', 'reps': 0, 'rep_count': 0, 'success': False}), 400
 
