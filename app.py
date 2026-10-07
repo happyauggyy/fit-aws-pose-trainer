@@ -82,6 +82,26 @@ logger.info("Setting up Flask application")
 app = Flask(__name__)
 app.secret_key = 'fitness_trainer_secret_key'  # Required for sessions
 
+# ---------------------------------------------------------------------------
+# Global MediaPipe Pose detector – initialised once at startup so every
+# request can call pose_detector.process() without per-request overhead.
+# Falls back to None gracefully when mp.solutions is not available.
+# ---------------------------------------------------------------------------
+import mediapipe as mp
+
+try:
+    _mp_pose  = mp.solutions.pose
+    pose_detector = _mp_pose.Pose(
+        static_image_mode=True,
+        model_complexity=0,
+        min_detection_confidence=0.3,
+        min_tracking_confidence=0.3,
+    )
+    logger.info("Global pose_detector initialised (static_image_mode=True)")
+except Exception as _pose_init_err:
+    logger.error(f"pose_detector init failed: {_pose_init_err}")
+    pose_detector = None
+
 # Global variables
 camera = None
 output_frame = None
@@ -324,8 +344,7 @@ def dashboard():
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
     """Process a single frame from the client webcam, run pose estimation and return rep count."""
-    global exercise_running, exercise_engine, exercise_goal, sets_completed, sets_goal, workout_start_time
-    global global_rep_counter, global_exercise_stage
+    global global_rep_counter, global_exercise_stage, pose_detector
 
     data = request.get_json(silent=True) or {}
     image_data = data.get('image') or data.get('frame') or ''
@@ -333,60 +352,43 @@ def process_frame():
     if ',' in image_data:
         image_data = image_data.split(',', 1)[1]
 
+    if not image_data:
+        return jsonify({'reps': global_rep_counter, 'success': False}), 200
+
     try:
-        img_bytes = base64.b64decode(image_data)
-        nparr = np.frombuffer(img_bytes, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    except Exception as e:
-        return jsonify({'error': str(e), 'reps': global_rep_counter, 'success': False}), 400
+        img_bytes  = base64.b64decode(image_data)
+        nparr      = np.frombuffer(img_bytes, np.uint8)
+        frame      = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return jsonify({'reps': global_rep_counter, 'success': False}), 200
 
-    if frame is None or frame.size == 0:
-        return jsonify({'error': 'Empty frame', 'reps': global_rep_counter, 'success': False}), 400
+        rgb_frame  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results    = pose_detector.process(rgb_frame) if pose_detector else None
 
-    # Brightness check – skip very dark / black frames
-    if np.mean(frame) < 15.0:
-        return jsonify({'reps': global_rep_counter, 'status': 'skipped_black_frame'}), 200
+        if results and results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
+            shoulder  = landmarks[12]
+            elbow     = landmarks[14]
+            wrist     = landmarks[16]
 
-    # Resize to max width 640 while preserving aspect ratio
-    h, w = frame.shape[:2]
-    if w > 640:
-        frame = cv2.resize(frame, (640, int(h * (640 / w))))
+            angle = calculate_angle(shoulder, elbow, wrist)
 
-    # Convert BGR to RGB
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if angle > 150:
+                global_exercise_stage = "down"
+            if angle < 45 and global_exercise_stage == "down":
+                global_exercise_stage = "up"
+                global_rep_counter += 1
+                print(f"[REPS DEBUG] >>> REP COUNTED! Total: {global_rep_counter} <<<", flush=True)
 
-    # Ensure a standalone MediaPipe Pose instance with static_image_mode=True
-    import mediapipe as mp
-    if not hasattr(app, 'mp_pose_instance'):
-        app.mp_pose_instance = mp.solutions.pose.Pose(
-            static_image_mode=True,
-            model_complexity=0,
-            min_detection_confidence=0.3,
-            min_tracking_confidence=0.3
-        )
+            print(f"[REPS DEBUG] Angle: {int(angle)} | State: {global_exercise_stage} | Reps: {global_rep_counter}", flush=True)
+            return jsonify({'reps': global_rep_counter, 'angle': int(angle), 'stage': global_exercise_stage, 'success': True}), 200
+        else:
+            print("[REPS DEBUG] No landmarks visible", flush=True)
+            return jsonify({'reps': global_rep_counter, 'success': False}), 200
 
-    results = app.mp_pose_instance.process(rgb_frame)
-
-    if results.pose_landmarks:
-        landmarks = results.pose_landmarks.landmark
-        shoulder = landmarks[12]
-        elbow    = landmarks[14]
-        wrist    = landmarks[16]
-
-        angle = calculate_angle(shoulder, elbow, wrist)
-
-        if angle > 150:
-            global_exercise_stage = "down"
-        if angle < 45 and global_exercise_stage == "down":
-            global_exercise_stage = "up"
-            global_rep_counter += 1
-            print(f"[REPS DEBUG] >>> REP COUNTED! Total: {global_rep_counter} <<<", flush=True)
-
-        print(f"[REPS DEBUG] Elbow Angle: {int(angle)}° | State: {global_exercise_stage} | Reps: {global_rep_counter}", flush=True)
-        return jsonify({'reps': global_rep_counter, 'angle': int(angle), 'stage': global_exercise_stage, 'success': True})
-    else:
-        print("[REPS DEBUG] No landmarks visible", flush=True)
-        return jsonify({'reps': global_rep_counter, 'success': False})
+    except Exception as err:
+        print(f"[PROCESS ERROR] {err}", flush=True)
+        return jsonify({'reps': global_rep_counter, 'error': str(err), 'success': False}), 200
 
 @app.route('/video_feed', methods=['GET', 'POST'])
 def video_feed():
