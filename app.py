@@ -305,36 +305,45 @@ def process_frame():
     form_score = 100
     form_grade = 'A'
 
+    # Safety default: ensure an exercise is always loaded
+    if not exercise_engine.exercise:
+        exercise_engine.set_exercise("biceps_curl")
+
+    if results.pose_landmarks:
+        result = exercise_engine.process_frame(frame, results.pose_landmarks.landmark)
+        if result.get("success"):
+            exercise_engine.draw_status_overlay(frame, exercise_goal, sets_goal, sets_completed)
+            exercise_engine.draw_form_score(frame)
+            current_reps = exercise_engine.get_counter()
+            print(f"[REPS DEBUG] Current Rep Count: {current_reps}", flush=True)
+        else:
+            print(f"[REPS DEBUG] Frame failed: {result.get('error')}", flush=True)
+    else:
+        print("[REPS DEBUG] No body landmarks detected by MediaPipe", flush=True)
+
+    # Check if rep goal is reached
+    if current_reps >= exercise_goal:
+        sets_completed += 1
+        exercise_engine.reset()
+        if sets_completed >= sets_goal:
+            exercise_running = False
+            avg_score = exercise_engine.exercise.avg_form_score if exercise_engine.exercise else 0
+            draw_text_with_background(frame, f"WORKOUT COMPLETE! Avg Score: {avg_score}",
+                                    (frame.shape[1]//2 - 200, frame.shape[0]//2),
+                                    cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 200, 0), 2)
+            # Attempt to log to AWS
+            try:
+                from aws_logger import save_workout_to_aws
+                student_id = session.get('student_id', 'STUDENT_001')
+                save_workout_to_aws(student_id, current_exercise_type or "workout", exercise_goal, avg_score)
+            except Exception as aws_err:
+                logger.warning(f"AWS logger call exception: {aws_err}")
+        else:
+            draw_text_with_background(frame, f"SET {sets_completed} COMPLETE! Rest for 30 sec",
+                                    (frame.shape[1]//2 - 200, frame.shape[0]//2),
+                                    cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 0, 200), 2)
+
     if exercise_running and exercise_engine.exercise:
-        if results.pose_landmarks:
-            result = exercise_engine.process_frame(frame, results.pose_landmarks.landmark)
-            if result.get("success"):
-                exercise_engine.draw_status_overlay(frame, exercise_goal, sets_goal, sets_completed)
-                exercise_engine.draw_form_score(frame)
-                current_reps = exercise_engine.get_counter()
-                print(f"[REPS DEBUG] Current Rep Count: {current_reps}", flush=True)
-                
-                # Check if rep goal is reached
-                if current_reps >= exercise_goal:
-                    sets_completed += 1
-                    exercise_engine.reset()
-                    if sets_completed >= sets_goal:
-                        exercise_running = False
-                        avg_score = exercise_engine.exercise.avg_form_score if exercise_engine.exercise else 0
-                        draw_text_with_background(frame, f"WORKOUT COMPLETE! Avg Score: {avg_score}", 
-                                                (frame.shape[1]//2 - 200, frame.shape[0]//2),
-                                                cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 200, 0), 2)
-                        # Attempt to log to AWS
-                        try:
-                            from aws_logger import save_workout_to_aws
-                            student_id = session.get('student_id', 'STUDENT_001')
-                            save_workout_to_aws(student_id, current_exercise_type or "workout", exercise_goal, avg_score)
-                        except Exception as aws_err:
-                            logger.warning(f"AWS logger call exception: {aws_err}")
-                    else:
-                        draw_text_with_background(frame, f"SET {sets_completed} COMPLETE! Rest for 30 sec", 
-                                                (frame.shape[1]//2 - 200, frame.shape[0]//2),
-                                                cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), (0, 0, 200), 2)
         current_reps = exercise_engine.get_counter() if exercise_engine.exercise else 0
         ex_status = exercise_engine.get_status()
         form_score = ex_status.get('form_score', 100)
