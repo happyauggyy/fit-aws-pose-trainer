@@ -17,48 +17,49 @@
                 <a href="/dashboard" class="nav-link">📊 Dashboard</a>
             </nav>
         </header>
-        
+
         <div class="main-content">
+            <!-- ── Camera Panel ── -->
             <div class="video-container">
-                <div id="video-placeholder" class="video-placeholder">
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">📹</div>
-                        <p id="camera-status-text">Click to start camera</p>
-                        <button id="start-camera-btn" class="btn primary-btn">Start Camera</button>
-                    </div>
+                <!-- Visible webcam element – always in the DOM -->
+                <video id="webcam" autoplay playsinline muted
+                       style="width:480px; height:360px; background:#000; display:block;">
+                </video>
+
+                <!-- Rep counter & start button sit directly below the video -->
+                <div style="margin-top:12px; text-align:center;">
+                    <h2 id="rep-display" style="color:#3498db; font-size:2rem; margin:0 0 10px;">Reps: 0</h2>
+                    <button id="startBtn" class="btn primary-btn">Start Camera</button>
+                    <button id="stopBtn"  class="btn secondary-btn" style="margin-left:8px;" disabled>Stop Camera</button>
                 </div>
-                <!-- Local Webcam Video Feed -->
-                <video id="webcam" autoplay playsinline muted style="display: none;"></video>
             </div>
-            
+
+            <!-- ── Controls Panel ── -->
             <div class="controls">
                 <div class="exercise-selection">
                     <h2>Select Exercise <span id="exercise-count" class="exercise-count"></span></h2>
-                    
-                    <!-- Exercise Category Tabs -->
+
                     <div class="category-tabs">
                         <button class="category-tab active" data-category="all">All</button>
                         <button class="category-tab" data-category="upper">Upper Body</button>
                         <button class="category-tab" data-category="lower">Lower Body</button>
                         <button class="category-tab" data-category="cardio">Cardio</button>
                     </div>
-                    
-                    <!-- Exercise Grid - Dynamically Loaded -->
+
                     <div class="exercise-options" id="exercise-grid">
                         <div class="loading">Loading exercises...</div>
                     </div>
-                    
-                    <!-- Exercise Info Panel -->
+
                     <div id="exercise-info" class="exercise-info hidden">
                         <div class="info-header">
-                            <span id="info-name" class="info-name"></span>
-                            <span id="info-type" class="info-type"></span>
+                            <span id="info-name"  class="info-name"></span>
+                            <span id="info-type"  class="info-type"></span>
                         </div>
-                        <p id="info-description" class="info-description"></p>
-                        <div id="info-note" class="info-note"></div>
+                        <p   id="info-description" class="info-description"></p>
+                        <div id="info-note"        class="info-note"></div>
                     </div>
                 </div>
-                
+
                 <div class="exercise-config">
                     <h2>Configure Workout</h2>
                     <div class="config-inputs">
@@ -72,15 +73,17 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="action-buttons">
                     <button id="start-btn" class="btn primary-btn">Start Workout</button>
-                    <button id="stop-btn" class="btn secondary-btn" disabled>Stop Workout</button>
+                    <button id="stop-btn"  class="btn secondary-btn" disabled>Stop Workout</button>
                 </div>
-                
+
                 <div class="workout-status">
                     <h2>Current Status</h2>
-                    <h2 id="rep-count" class="live-reps-counter" style="color: #3498db; font-size: 1.8rem; margin: 10px 0;">Reps: 0</h2>
+                    <!-- Mirror of rep-display for legacy script.js compatibility -->
+                    <h2 id="rep-count" class="live-reps-counter"
+                        style="color:#3498db; font-size:1.8rem; margin:10px 0;">Reps: 0</h2>
                     <div class="status-display">
                         <div class="status-item">
                             <span class="status-label">Exercise:</span>
@@ -104,166 +107,142 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
+            </div><!-- /.controls -->
+        </div><!-- /.main-content -->
+    </div><!-- /.container -->
+
+    <!-- Legacy exercise-selection logic (categories, start/stop workout, status polling) -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    
-    <!-- Client-side HTML5 Camera Capture and Frame Processing Loop for Render -->
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Bulletproof webcam → /process_frame pipeline
+         ═══════════════════════════════════════════════════════════ -->
     <script>
-        (function() {
-            const videoElement = document.getElementById('webcam') || document.querySelector('video');
-            const startCameraBtn = document.getElementById('start-camera-btn');
-            const placeholder = document.getElementById('video-placeholder');
-            const statusText = document.getElementById('camera-status-text');
+    (function () {
+        'use strict';
 
-            // Off-screen canvas
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+        const video    = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn  = document.getElementById('stopBtn');
+        const repDisplay = document.getElementById('rep-display');
+        // keep the sidebar counter in sync too
+        const repCount   = document.getElementById('rep-count');
 
-            let localMediaStream = null;
-            let isStreaming = false;
-            let isProcessing = false;
-            let captureIntervalId = null;
+        // Off-screen canvas – created once, resized per frame
+        const canvas = document.createElement('canvas');
+        const ctx    = canvas.getContext('2d');
 
-            async function captureAndSendFrame() {
-                if (!isStreaming || isProcessing) return;
-                if (!videoElement || videoElement.paused || videoElement.ended) return;
-                if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return;
+        let stream          = null;
+        let intervalId      = null;
+        let isSending       = false;   // guard: don't stack requests
 
-                isProcessing = true;
-                try {
-                    canvas.width = videoElement.videoWidth || 640;
-                    canvas.height = videoElement.videoHeight || 480;
-                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                    const dataURL = canvas.toDataURL('image/jpeg', 0.6);
+        // ── helpers ──────────────────────────────────────────────
+        function setReps(n) {
+            if (repDisplay) repDisplay.innerText = 'Reps: ' + n;
+            if (repCount)   repCount.innerText   = 'Reps: ' + n;
+        }
 
-                    const response = await fetch('/process_frame', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: dataURL })
-                    });
+        // ── frame capture & send ─────────────────────────────────
+        function captureAndSend() {
+            // Must be playing and have real dimensions
+            if (video.videoWidth === 0) return;
+            if (isSending) return;
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.reps !== undefined) {
-                            const repEl = document.getElementById('rep-count');
-                            if (repEl) {
-                                repEl.innerText = `Reps: ${data.reps}`;
-                            }
-                            const currentRepsElem = document.getElementById('current-reps');
-                            if (currentRepsElem) {
-                                const parts = currentRepsElem.textContent.split('/');
-                                if (parts.length > 1) {
-                                    currentRepsElem.textContent = `${data.reps} /${parts[1]}`;
-                                } else {
-                                    currentRepsElem.textContent = data.reps;
-                                }
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Frame processing loop warning:', err);
-                } finally {
-                    isProcessing = false;
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const base64Image = canvas.toDataURL('image/jpeg', 0.6);
+
+            isSending = true;
+            fetch('/process_frame', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ image: base64Image })
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.reps !== undefined) {
+                    setReps(data.reps);
                 }
+            })
+            .catch(function (err) {
+                console.warn('[webcam] fetch error:', err);
+            })
+            .finally(function () {
+                isSending = false;
+            });
+        }
+
+        // ── start camera ─────────────────────────────────────────
+        async function startCamera() {
+            if (stream) return;                     // already running
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Camera API unavailable – please use HTTPS and a modern browser.');
+                return;
             }
 
-            async function startCamera() {
-                if (isStreaming) return;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                });
 
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    const msg = 'Camera API is not supported by your browser or requires HTTPS. When hosted on Render, please access via https://';
-                    console.error(msg);
-                    if (statusText) {
-                        statusText.textContent = msg;
-                        statusText.style.color = '#ff6b6b';
-                    }
-                    alert(msg);
-                    return;
-                }
+                video.srcObject = stream;
 
-                try {
-                    console.log('Starting camera and capturing webcam stream...');
-                    if (statusText) {
-                        statusText.textContent = 'Requesting camera permissions...';
-                    }
-
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: { ideal: 640 },
-                            height: { ideal: 480 },
-                            facingMode: 'user'
-                        },
-                        audio: false
-                    });
-
-                    localMediaStream = stream;
-
-                    if (videoElement) {
-                        videoElement.srcObject = stream;
-                        videoElement.style.display = 'block';
-                        videoElement.onloadedmetadata = () => {
-                            videoElement.play().catch(e => console.warn('Autoplay error:', e));
-                        };
-                        videoElement.onplaying = () => {
-                            isStreaming = true;
-                            if (placeholder) {
-                                placeholder.style.display = 'none';
-                            }
-                            if (!captureIntervalId) {
-                                captureIntervalId = setInterval(captureAndSendFrame, 80); // ~12 FPS
-                            }
-                            console.log('Continuous frame processing loop active and streaming.');
-                        };
-                    }
-                } catch (err) {
-                    console.error('Camera access error:', err);
-                    let userMsg = 'Could not access the camera. ';
-                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        userMsg += 'Camera permission was denied. Please allow camera permissions in your browser settings.';
-                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                        userMsg += 'No camera found. Please connect a webcam.';
-                    } else {
-                        userMsg += err.message || err.name;
-                    }
-                    if (statusText) {
-                        statusText.textContent = userMsg;
-                        statusText.style.color = '#ff6b6b';
-                    }
-                    alert(userMsg);
-                }
+                // Wait for metadata BEFORE playing, then start the loop
+                video.onloadedmetadata = function () {
+                    video.play()
+                        .then(function () {
+                            console.log('[webcam] playing – starting capture loop');
+                            startBtn.disabled = true;
+                            stopBtn.disabled  = false;
+                            intervalId = setInterval(captureAndSend, 200); // 5 FPS
+                        })
+                        .catch(function (e) {
+                            console.error('[webcam] play() failed:', e);
+                        });
+                };
+            } catch (err) {
+                console.error('[webcam] getUserMedia error:', err);
+                let msg = 'Cannot access camera: ';
+                if (err.name === 'NotAllowedError')  msg += 'permission denied.';
+                else if (err.name === 'NotFoundError') msg += 'no camera found.';
+                else msg += err.message;
+                alert(msg);
             }
+        }
 
-            function stopCamera() {
-                isStreaming = false;
-                if (captureIntervalId) {
-                    clearInterval(captureIntervalId);
-                    captureIntervalId = null;
-                }
-                if (localMediaStream) {
-                    localMediaStream.getTracks().forEach(track => track.stop());
-                    localMediaStream = null;
-                }
-                if (videoElement) {
-                    videoElement.srcObject = null;
-                    videoElement.style.display = 'none';
-                }
-                if (placeholder) {
-                    placeholder.style.display = 'flex';
-                }
-                fetch('/stop_camera', { method: 'POST' }).catch(() => {});
+        // ── stop camera ──────────────────────────────────────────
+        function stopCamera() {
+            if (intervalId) { clearInterval(intervalId); intervalId = null; }
+            if (stream) {
+                stream.getTracks().forEach(function (t) { t.stop(); });
+                stream = null;
             }
+            video.srcObject = null;
+            startBtn.disabled = false;
+            stopBtn.disabled  = true;
+            fetch('/stop_camera', { method: 'POST' }).catch(function () {});
+        }
 
-            if (startCameraBtn) {
-                startCameraBtn.addEventListener('click', startCamera);
-            }
+        // ── button wiring ─────────────────────────────────────────
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click',  stopCamera);
+        window.addEventListener('beforeunload', stopCamera);
 
-            window.startWebcamFeed = startCamera;
-            window.stopWebcamFeed = stopCamera;
-            window.addEventListener('beforeunload', stopCamera);
-        })();
+        // expose for legacy script.js
+        window.startWebcamFeed = startCamera;
+        window.stopWebcamFeed  = stopCamera;
+
+        // Also wire the legacy "start-camera-btn" if present (inside placeholder)
+        var legacyBtn = document.getElementById('start-camera-btn');
+        if (legacyBtn) legacyBtn.addEventListener('click', startCamera);
+    })();
     </script>
 </body>
 </html>
