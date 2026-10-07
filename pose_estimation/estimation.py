@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 
 class PoseEstimator:
-    def __init__(self, static_mode=False, model_complexity=1):
+    def __init__(self, static_mode=False, model_complexity=0):
         """
         Initialize PoseEstimator
         
