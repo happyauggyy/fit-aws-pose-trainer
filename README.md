@@ -1,22 +1,30 @@
-# 🏋️ Fitness Trainer with AI Pose Estimation
+# ⚡ REP Counter AI
 
-An AI-powered web application that tracks your exercises using computer vision and provides real-time form feedback with scoring.
+An AI-powered exercise repetition counter that uses real-time computer vision to track exercises, count repetitions, and provide instant form feedback directly in your browser.
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)
-![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose-orange.svg)
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-Tasks_Vision-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ---
 
 ## ✨ Features
 
-### 🎥 Real-time Exercise Tracking
-- 📷 **Real-time Pose Estimation** using MediaPipe
-- 🎯 **18 Built-in Exercises** - Full body workout coverage
-- 📊 **Form Score System** (0-100) with A-F grading
-- 🔄 **Automatic Rep Counting** with state machine logic
-- 💬 **Real-time Form Feedback** - Instant correction tips
+### 🎥 Real-Time Multi-Exercise Repetition Tracking
+- ⚡ **100% Client-Side Inference** via MediaPipe Tasks Vision WebAssembly (zero server latency, zero worker timeouts)
+- 🎯 **7 Core Exercises Supported**:
+  1. **Push-Ups** — Elbow flexion & plank torso alignment tracking
+  2. **Squats** — Knee depth tracking with parallel thigh detection
+  3. **Bicep Curls** — Full extension to peak contraction tracking (with Auto/Right/Left arm toggle)
+  4. **Lunges** — Front knee angle & stance tracking
+  5. **Shoulder Press** — Rack position to overhead lockout detection
+  6. **Sit-Ups** — Torso-to-hip angle curl tracking
+  7. **Jumping Jacks** — Coordinated arm elevation & leg spread tracking
+- 🔄 **Hysteresis Movement State Machines** — Eliminates false positives and jitter double-counting
+- 💬 **Live Form Feedback** — Instant posture tips ("Good depth", "Lower chest further", etc.)
+- ⏱️ **Workout Timer & Live HUD** — Real-time stopwatch and giant repetition display
+- 🏆 **Workout Summary Modal** — Reps, duration, pace, and form grade upon workout completion
 
 ### 📹 Video Analysis Mode
 - 🎬 **Upload & Analyze Videos** - Process pre-recorded workout videos

@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bicep Curl Trainer — Real-Time Pose Tracking</title>
+    <title>REP Counter AI — Real-Time Exercise Repetition Counter</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -15,189 +15,278 @@
         }
 
         :root {
-            --bg-primary: #0a0f1d;
-            --bg-secondary: #11192e;
-            --bg-card: rgba(22, 32, 58, 0.75);
+            --bg-base: #070b14;
+            --bg-surface: #0f172a;
+            --bg-card: rgba(18, 28, 51, 0.72);
+            --bg-card-hover: rgba(26, 40, 71, 0.88);
             --border-card: rgba(255, 255, 255, 0.08);
-            --accent-cyan: #38bdf8;
-            --accent-green: #10b981;
-            --accent-purple: #8b5cf6;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
-            --text-primary: #f8fafc;
-            --text-muted: #94a3b8;
-            --shadow-glow: 0 0 35px rgba(56, 189, 248, 0.15);
+            --border-highlight: rgba(56, 189, 248, 0.35);
+            --cyan: #38bdf8;
+            --cyan-glow: rgba(56, 189, 248, 0.22);
+            --emerald: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.25);
+            --purple: #a855f7;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-dim: #64748b;
         }
 
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: radial-gradient(circle at top center, #131d3b 0%, var(--bg-primary) 70%);
-            color: var(--text-primary);
+            background: radial-gradient(circle at 50% 0%, #152347 0%, var(--bg-base) 60%);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 28px 16px 48px;
+            padding: 16px 16px 48px;
+            overflow-x: hidden;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            background: linear-gradient(135deg, #ffffff 40%, var(--accent-cyan) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 6px;
-        }
-
-        .header p {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .badge-client {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            padding: 4px 10px;
-            border-radius: 999px;
-            margin-top: 8px;
-        }
-
-        .badge-dot {
-            width: 7px;
-            height: 7px;
-            background: #34d399;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #34d399;
-            animation: pulse-dot 2s infinite ease-in-out;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.85); }
-        }
-
-        /* ── Main Container ────────────────────────────────────────── */
-        .app-container {
+        /* ── App Navigation & Header ────────────────────────────── */
+        .app-header {
             width: 100%;
-            max-width: 780px;
+            max-width: 1080px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 20px;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            margin-bottom: 22px;
         }
 
-        /* ── Metric Dashboard Cards ────────────────────────────────── */
-        .stats-grid {
-            width: 100%;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+        .brand-group {
+            display: flex;
+            align-items: center;
             gap: 12px;
         }
 
-        @media (max-width: 640px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        .brand-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 14px var(--cyan-glow);
         }
 
-        .stat-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-card);
-            border-radius: 16px;
-            padding: 16px 14px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(56, 189, 248, 0.3);
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 2.3rem;
-            font-weight: 700;
-            color: var(--accent-cyan);
-            line-height: 1;
-            transition: color 0.2s, transform 0.2s;
-        }
-
-        .stat-value.rep-pulse {
-            color: var(--accent-green);
-            transform: scale(1.15);
-        }
-
-        .stage-badge {
-            display: inline-block;
-            font-size: 1.1rem;
+        .brand-title {
+            font-size: 1.35rem;
             font-weight: 800;
-            text-transform: uppercase;
-            padding: 4px 12px;
-            border-radius: 8px;
-            letter-spacing: 0.05em;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 40%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .stage-down {
-            color: #38bdf8;
+        .brand-tagline {
+            font-size: 0.72rem;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            color: var(--text-sub);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-item.active {
+            color: var(--cyan);
             background: rgba(56, 189, 248, 0.12);
             border: 1px solid rgba(56, 189, 248, 0.25);
         }
 
-        .stage-up {
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.15);
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.12);
             border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34d399;
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .stage-ready {
-            color: #94a3b8;
-            background: rgba(148, 163, 184, 0.1);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse-kf 1.8s infinite ease-in-out;
         }
 
-        /* ── Video Viewport ────────────────────────────────────────── */
-        .video-viewport {
+        @keyframes pulse-kf {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(0.85); opacity: 0.45; }
+        }
+
+        /* ── Main Layout Container ───────────────────────────────── */
+        .main-container {
+            width: 100%;
+            max-width: 1080px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        /* ── Exercise Carousel / Grid Picker ─────────────────────── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .exercises-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        @media (max-width: 980px) {
+            .exercises-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .exercises-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .ex-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            position: relative;
+        }
+
+        .ex-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .ex-card.selected {
+            background: linear-gradient(180deg, rgba(14, 116, 144, 0.35) 0%, rgba(18, 28, 51, 0.95) 100%);
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.28);
+            transform: translateY(-2px);
+        }
+
+        .ex-card-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+        }
+
+        .ex-card-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        .ex-card-cat {
+            font-size: 0.66rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--cyan);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Workout Workspace Layout ────────────────────────────── */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            width: 100%;
+        }
+
+        @media (max-width: 860px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Video Viewport Area ─────────────────────────────────── */
+        .viewport-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+        }
+
+        .video-box {
             position: relative;
             width: 100%;
             background: #000;
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
-            border: 1px solid var(--border-card);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), var(--shadow-glow);
             aspect-ratio: 4/3;
-            max-height: 520px;
+            max-height: 480px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
         }
 
         #webcam {
@@ -219,102 +308,95 @@
             object-fit: contain;
         }
 
-        /* Placeholder overlay before camera starts */
-        .video-placeholder {
+        .video-splash {
             position: absolute;
             inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(180deg, rgba(17, 25, 46, 0.95), rgba(10, 15, 29, 0.98));
-            color: var(--text-muted);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.94) 0%, rgba(7, 11, 20, 0.98) 100%);
+            color: var(--text-sub);
             text-align: center;
             padding: 24px;
             z-index: 2;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s;
         }
 
-        .video-placeholder.hidden {
+        .video-splash.hidden {
             opacity: 0;
             pointer-events: none;
         }
 
-        .placeholder-icon {
-            font-size: 3.2rem;
+        .splash-icon {
+            font-size: 3rem;
             margin-bottom: 12px;
-            opacity: 0.85;
+            animation: bounce-kf 2s infinite ease-in-out;
         }
 
-        /* ── Arm Selector Segmented Control ───────────────────────── */
-        .arm-control-row {
+        @keyframes bounce-kf {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* ── Form Feedback Banner (Over Video Top) ────────────────── */
+        .feedback-banner {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 999px;
+            padding: 7px 20px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--cyan);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+            z-index: 3;
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: var(--bg-card);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-card);
-            padding: 6px 12px;
-            border-radius: 14px;
+            gap: 8px;
+            white-space: nowrap;
+            transition: all 0.25s;
         }
 
-        .arm-control-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .feedback-banner.good {
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
         }
 
-        .segment-btn-group {
-            display: flex;
-            gap: 4px;
-            background: rgba(0, 0, 0, 0.35);
-            padding: 4px;
-            border-radius: 10px;
-        }
-
-        .segment-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 14px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .segment-btn:hover {
-            color: #fff;
-        }
-
-        .segment-btn.active {
-            background: #2563eb;
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+        .feedback-banner.warn {
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.4);
         }
 
         /* ── Controls Row ─────────────────────────────────────────── */
-        .actions-row {
+        .controls-toolbar {
             display: flex;
-            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
+            gap: 10px;
+            padding: 4px 2px;
+        }
+
+        .btn-group-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn {
             font-family: inherit;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 13px 28px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            gap: 7px;
+            padding: 11px 22px;
+            font-size: 0.92rem;
+            font-weight: 800;
             border: none;
             border-radius: 12px;
             cursor: pointer;
@@ -323,7 +405,7 @@
         }
 
         .btn:disabled {
-            opacity: 0.4;
+            opacity: 0.38;
             cursor: not-allowed;
             transform: none !important;
             box-shadow: none !important;
@@ -337,337 +419,1206 @@
             transform: translateY(1px);
         }
 
-        .btn-start {
+        .btn-primary {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+            color: #fff;
+            box-shadow: 0 4px 16px var(--emerald-glow);
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.28);
         }
 
         .btn-stop {
             background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 18px rgba(244, 63, 94, 0.35);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(244, 63, 94, 0.28);
         }
 
-        .btn-reset {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.35);
-        }
-
-        /* ── Status Indicator ─────────────────────────────────────── */
-        .status-container {
-            width: 100%;
-            text-align: center;
-            min-height: 28px;
-        }
-
-        #status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            padding: 6px 16px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            transition: all 0.3s ease;
-        }
-
-        #status.ok {
-            background: rgba(16, 185, 129, 0.12);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.25);
-        }
-
-        #status.warn {
-            background: rgba(245, 158, 11, 0.12);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.25);
-        }
-
-        #status.error {
-            background: rgba(244, 63, 94, 0.12);
-            color: #fb7185;
-            border: 1px solid rgba(244, 63, 94, 0.25);
-        }
-
-        /* ── Instruction Guide ────────────────────────────────────── */
-        .guide-card {
-            width: 100%;
-            background: var(--bg-card);
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--border-card);
-            border-radius: 16px;
-            padding: 18px 24px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            color: var(--text-sub);
         }
 
-        .guide-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--accent-cyan);
-            margin-bottom: 12px;
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        /* Arm Selector Toolbar (Shown for Arm Exercises) */
+        .arm-toggle-wrap {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-card);
+            padding: 4px;
+            border-radius: 10px;
         }
 
-        .guide-steps {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+        .arm-opt-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
         }
 
-        @media (max-width: 640px) {
-            .guide-steps {
-                grid-template-columns: 1fr;
-            }
+        .arm-opt-btn:hover { color: #fff; }
+
+        .arm-opt-btn.active {
+            background: #2563eb;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
         }
 
-        .step-item {
+        /* ── Sidebar Metrics HUD ─────────────────────────────────── */
+        .metrics-sidebar {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 14px;
         }
 
-        .step-number {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--accent-cyan);
-            background: rgba(56, 189, 248, 0.12);
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
+        .hud-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .hud-active-ex {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        .hud-ex-icon {
+            font-size: 2rem;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .hud-ex-info h3 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .hud-ex-info p {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Giant Rep Counter Block */
+        .rep-display-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rep-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .rep-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--cyan);
+            line-height: 1;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .rep-number.pulse {
+            color: #34d399;
+            transform: scale(1.18);
+            text-shadow: 0 0 25px rgba(52, 211, 153, 0.7);
+        }
+
+        /* State & Metric Grid */
+        .stat-pair-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-box-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        .stat-box-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stage-pill {
+            display: inline-block;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            padding: 3px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .stage-ready { color: var(--text-sub); background: rgba(148, 163, 184, 0.12); }
+        .stage-down  { color: var(--cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
+        .stage-up    { color: #34d399; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); }
+        .stage-alert { color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        /* Guide Card */
+        .guide-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 16px 18px;
+        }
+
+        .guide-box h4 {
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--cyan);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .guide-steps-list {
+            font-size: 0.82rem;
+            color: var(--text-sub);
+            line-height: 1.5;
+            padding-left: 18px;
+        }
+
+        .guide-steps-list li {
+            margin-bottom: 6px;
+        }
+
+        .guide-steps-list strong {
+            color: #fff;
+        }
+
+        /* ── Workout Summary Modal ───────────────────────────────── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: linear-gradient(180deg, #162444 0%, #0d1527 100%);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(56, 189, 248, 0.2);
+            border-radius: 22px;
+            width: 100%;
+            max-width: 440px;
+            padding: 28px 24px;
+            text-align: center;
+            transform: scale(0.92);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-backdrop.open .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-trophy {
+            font-size: 3.5rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.4));
+        }
+
+        .modal-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .modal-subtitle {
+            font-size: 0.88rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .modal-stat-item {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 12px 8px;
+        }
+
+        .modal-stat-lbl {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-dim);
             margin-bottom: 2px;
         }
 
-        .step-text {
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            line-height: 1.4;
+        .modal-stat-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--cyan);
         }
 
-        .step-text strong {
-            color: #ffffff;
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
         }
     </style>
 </head>
 <body>
 
-    <header class="header">
-        <h1>🏋️ AI Bicep Curl Trainer</h1>
-        <p>Real-Time Computer Vision & Automatic Rep Counter</p>
-        <div class="badge-client">
-            <span class="badge-dot"></span>
-            100% Client-Side Inference • Zero Server Overhead
+    <!-- App Navigation Header -->
+    <header class="app-header">
+        <div class="brand-group">
+            <div class="brand-logo-icon">⚡</div>
+            <div>
+                <h1 class="brand-title">REP Counter AI</h1>
+                <p class="brand-tagline">Intelligent Exercise Vision Tracker</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a href="/" class="nav-item active">Workout</a>
+            <a href="/dashboard" class="nav-item">Dashboard</a>
+            <a href="/profile" class="nav-item">Profile</a>
+        </nav>
+
+        <div class="badge-live">
+            <span class="pulse-dot"></span>
+            100% Client Vision
         </div>
     </header>
 
-    <main class="app-container">
+    <main class="main-container">
 
-        <!-- Metrics Dashboard -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Reps Counted</div>
-                <div class="stat-value" id="repCounter">0</div>
+        <!-- ── Exercise Selector Carousel ── -->
+        <div>
+            <div class="section-header">
+                <span class="section-title">
+                    <span>🎯</span> Select Exercise
+                </span>
+                <span id="status-pill" style="font-size: 0.8rem; color: var(--amber); font-weight: 600;">
+                    ⏳ Loading MediaPipe Vision...
+                </span>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-label">Elbow Angle</div>
-                <div class="stat-value" id="angleDisplay">--°</div>
+            <div class="exercises-grid" id="exerciseGrid">
+                <!-- Dynamically populated via EXERCISE_REGISTRY -->
             </div>
+        </div>
 
-            <div class="stat-card">
-                <div class="stat-label">Current Stage</div>
-                <div style="margin-top: 4px;">
-                    <span class="stage-badge stage-ready" id="stageDisplay">READY</span>
+        <!-- ── Main Workspace: Video + Live HUD ── -->
+        <div class="workspace-grid">
+
+            <!-- Video Feed Viewport -->
+            <div class="viewport-card">
+                <div class="video-box">
+                    <video id="webcam" autoplay playsinline muted></video>
+                    <canvas id="overlay-canvas"></canvas>
+
+                    <!-- Real-Time Form Feedback Pill -->
+                    <div class="feedback-banner" id="feedbackBanner">
+                        <span>💬</span>
+                        <span id="feedbackText">Select exercise and click Start Camera</span>
+                    </div>
+
+                    <!-- Placeholder screen before webcam is active -->
+                    <div class="video-splash" id="videoSplash">
+                        <div class="splash-icon">📹</div>
+                        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 6px;" id="splashTitle">Ready to Train</h3>
+                        <p style="font-size: 0.88rem; max-width: 360px;" id="splashSubtitle">
+                            Position your camera to frame your body, then click <strong>Start Camera</strong> to begin tracking reps in real time.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Controls & Arm Options -->
+                <div class="controls-toolbar">
+                    <div class="btn-group-main">
+                        <button class="btn btn-primary" id="startBtn" disabled>
+                            <span>▶ Start Camera</span>
+                        </button>
+                        <button class="btn btn-pause" id="pauseBtn" style="display: none;">
+                            <span>⏸ Pause</span>
+                        </button>
+                        <button class="btn btn-stop" id="stopBtn" disabled>
+                            <span>⏹ Stop</span>
+                        </button>
+                        <button class="btn btn-ghost" id="resetBtn">
+                            <span>🔄 Reset</span>
+                        </button>
+                    </div>
+
+                    <!-- Arm Tracking Segment (only for unilateral arm exercises) -->
+                    <div class="arm-toggle-wrap" id="armToggleWrap">
+                        <span style="font-size: 0.72rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; margin-right: 2px;">Side:</span>
+                        <button class="arm-opt-btn active" data-side="auto">Auto</button>
+                        <button class="arm-opt-btn" data-side="right">Right</button>
+                        <button class="arm-opt-btn" data-side="left">Left</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-label">Active Arm</div>
-                <div class="stat-value" style="font-size: 1.6rem; margin-top: 4px;" id="armDisplay">--</div>
-            </div>
-        </div>
+            <!-- Metrics HUD Sidebar -->
+            <div class="metrics-sidebar">
 
-        <!-- Video Viewport -->
-        <div class="video-viewport">
-            <video id="webcam" autoplay playsinline muted></video>
-            <canvas id="overlay-canvas"></canvas>
+                <div class="hud-card">
+                    <!-- Active Exercise Header -->
+                    <div class="hud-active-ex">
+                        <div class="hud-ex-icon" id="hudIcon">💪</div>
+                        <div class="hud-ex-info">
+                            <h3 id="hudName">Bicep Curls</h3>
+                            <p id="hudTarget">Arms • Biceps</p>
+                        </div>
+                    </div>
 
-            <div class="video-placeholder" id="placeholder">
-                <div class="placeholder-icon">📹</div>
-                <h3 style="font-size: 1.15rem; color: #fff; margin-bottom: 6px;">Camera Inactive</h3>
-                <p style="font-size: 0.9rem; max-width: 380px;">
-                    Click <strong>Start Camera</strong> below to enable your webcam and start local pose tracking.
-                </p>
-            </div>
-        </div>
+                    <!-- Giant Rep Counter -->
+                    <div class="rep-display-box">
+                        <div class="rep-title">Repetitions</div>
+                        <div class="rep-number" id="repCounter">0</div>
+                    </div>
 
-        <!-- Arm Selection Toggle -->
-        <div class="arm-control-row">
-            <span class="arm-control-label">Arm Tracking:</span>
-            <div class="segment-btn-group" id="armSelector">
-                <button class="segment-btn active" data-arm="auto">Auto (Best View)</button>
-                <button class="segment-btn" data-arm="right">Right Arm</button>
-                <button class="segment-btn" data-arm="left">Left Arm</button>
-            </div>
-        </div>
+                    <!-- Live State & Primary Angle -->
+                    <div class="stat-pair-grid">
+                        <div class="stat-box">
+                            <div class="stat-box-label">Stage</div>
+                            <span class="stage-pill stage-ready" id="stageBadge">READY</span>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-label" id="metricLabel">Elbow Angle</div>
+                            <div class="stat-box-val" id="metricVal">--°</div>
+                        </div>
+                    </div>
 
-        <!-- Action Buttons -->
-        <div class="actions-row">
-            <button class="btn btn-start" id="startBtn" disabled>
-                <span>▶ Start Camera</span>
-            </button>
-            <button class="btn btn-stop" id="stopBtn" disabled>
-                <span>⏹ Stop</span>
-            </button>
-            <button class="btn btn-reset" id="resetBtn">
-                <span>🔄 Reset Reps</span>
-            </button>
-        </div>
-
-        <!-- Status Message -->
-        <div class="status-container">
-            <div id="status" class="warn">
-                <span>⏳ Loading MediaPipe pose model...</span>
-            </div>
-        </div>
-
-        <!-- How it Works Guide -->
-        <div class="guide-card">
-            <div class="guide-title">
-                <span>📋</span> How To Use
-            </div>
-            <div class="guide-steps">
-                <div class="step-item">
-                    <span class="step-number">1</span>
-                    <span class="step-text">
-                        <strong>Position Yourself:</strong> Step back so your shoulder, elbow, and wrist are clearly framed.
-                    </span>
+                    <!-- Secondary Stats: Time & Form Rating -->
+                    <div class="stat-pair-grid">
+                        <div class="stat-box">
+                            <div class="stat-box-label">Workout Time</div>
+                            <div class="stat-box-val" id="timerDisplay">00:00</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-label">Tracking Arm</div>
+                            <div class="stat-box-val" id="activeArmDisplay" style="font-size: 1.15rem;">Auto</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="step-item">
-                    <span class="step-number">2</span>
-                    <span class="step-text">
-                        <strong>Full Extension:</strong> Straighten arm downward (angle &gt; 150°) to arm the rep tracker in <strong>DOWN</strong> stage.
-                    </span>
+
+                <!-- How-To Guide Box -->
+                <div class="guide-box">
+                    <h4><span>📋</span> Form &amp; Movement Rules</h4>
+                    <ol class="guide-steps-list" id="guideStepsList">
+                        <li><strong>Starting Position:</strong> Fully extend your arm downward (>150°).</li>
+                        <li><strong>Curl Upward:</strong> Squeeze your bicep until forearm is tightly contracted (<50°).</li>
+                        <li><strong>Full Extension:</strong> Return all the way down to complete 1 rep.</li>
+                    </ol>
                 </div>
-                <div class="step-item">
-                    <span class="step-number">3</span>
-                    <span class="step-text">
-                        <strong>Curl &amp; Count:</strong> Flex upward (angle &lt; 50°) to reach <strong>UP</strong> and count 1 rep. Return to extension for next rep.
-                    </span>
-                </div>
+
             </div>
+
         </div>
 
     </main>
 
+    <!-- ── Workout Summary Modal ── -->
+    <div class="modal-backdrop" id="summaryModal">
+        <div class="modal-card">
+            <div class="modal-trophy">🏆</div>
+            <h2 class="modal-title">Workout Finished!</h2>
+            <p class="modal-subtitle" id="modalExSubtitle">Great work on your Bicep Curls session.</p>
+
+            <div class="modal-stats-grid">
+                <div class="modal-stat-item">
+                    <div class="modal-stat-lbl">Total Reps</div>
+                    <div class="modal-stat-val" id="modalReps">0</div>
+                </div>
+                <div class="modal-stat-item">
+                    <div class="modal-stat-lbl">Duration</div>
+                    <div class="modal-stat-val" id="modalDuration">00:00</div>
+                </div>
+                <div class="modal-stat-item">
+                    <div class="modal-stat-lbl">Avg Pace</div>
+                    <div class="modal-stat-val" id="modalPace">0 /m</div>
+                </div>
+                <div class="modal-stat-item">
+                    <div class="modal-stat-lbl">Form Score</div>
+                    <div class="modal-stat-val" id="modalScore" style="color: #34d399;">98%</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="modalRestartBtn">Restart</button>
+                <button class="btn btn-primary" id="modalCloseBtn">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <!--
         ========================================================================
-        BROWSER-SIDE ARCHITECTURE:
-        - Pose estimation runs 100% inside the browser using WebAssembly.
-        - Model: Google MediaPipe Tasks Vision (PoseLandmarker Lite, ~4MB).
-        - No frames are ever uploaded to Render or Python.
-        - Zero worker timeout / zero memory leak on Render server.
+        REP Counter AI — Client-Side Multi-Exercise Engine
+        Loaded from Google Cloud MediaPipe Tasks Vision CDN
         ========================================================================
     -->
     <script type="module">
     import { PoseLandmarker, FilesetResolver, DrawingUtils }
         from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
 
-    // ── DOM Elements ────────────────────────────────────────────────────────
-    const video        = document.getElementById('webcam');
-    const canvas       = document.getElementById('overlay-canvas');
-    const ctx          = canvas.getContext('2d');
-    const placeholder  = document.getElementById('placeholder');
-    const repCountEl   = document.getElementById('repCounter');
-    const angleEl      = document.getElementById('angleDisplay');
-    const stageEl      = document.getElementById('stageDisplay');
-    const armDisplayEl = document.getElementById('armDisplay');
-    const startBtn     = document.getElementById('startBtn');
-    const stopBtn      = document.getElementById('stopBtn');
-    const resetBtn     = document.getElementById('resetBtn');
-    const statusEl     = document.getElementById('status');
-    const armSelector  = document.getElementById('armSelector');
-
-    // ── Rep Counting State Machine ──────────────────────────────────────────
-    // Hysteresis thresholds:
-    //   - DOWN: Angle must exceed 150° (arm extended) -> arms the gate.
-    //   - UP: Angle must dip below 50° (arm curled) while gate is armed -> increments rep.
-    //   - Arm must fully return to DOWN (> 150°) before another rep can count.
-    const DOWN_THRESHOLD = 150;
-    const UP_THRESHOLD   = 50;
-
-    let repCount    = 0;
-    let stage       = 'READY';
-    let gateArmed   = false;
-    let selectedArm = 'auto'; // 'auto' | 'right' | 'left'
-
-    // ── Performance & Pipeline State ────────────────────────────────────────
-    let poseLandmarker = null;
-    let mediaStream    = null;
-    let rafId          = null;
-    let lastVideoTime  = -1;
-
-    // ── Status Helper ───────────────────────────────────────────────────────
-    function setStatus(msg, type = '') {
-        statusEl.className = type;
-        statusEl.innerHTML = msg;
-    }
-
-    // ── Angle Calculation (2D joint angle at vertex B) ──────────────────────
+    // ── Joint Angle Math ────────────────────────────────────────────────────
     function calculateAngle(a, b, c) {
+        if (!a || !b || !c) return 0;
         const rad = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
         let deg = Math.abs(rad * 180.0 / Math.PI);
         if (deg > 180.0) deg = 360.0 - deg;
         return deg;
     }
 
-    // Landmark visibility helper: safely handles undefined or numbers
     function getLandmarkScore(lm) {
         if (!lm) return 0;
         if (typeof lm.visibility === 'number') return lm.visibility;
         if (typeof lm.presence === 'number') return lm.presence;
-        // Default to valid if coordinates are within normalized viewport
         return (lm.x >= 0 && lm.x <= 1 && lm.y >= 0 && lm.y <= 1) ? 1.0 : 0.2;
     }
 
-    // ── Rep Logic with Hysteresis ───────────────────────────────────────────
-    function processRepCycle(angle) {
-        const rounded = Math.round(angle);
-        angleEl.textContent = `${rounded}°`;
+    // ── EXERCISE REGISTRY ───────────────────────────────────────────────────
+    // Multi-exercise definition table with movement state machines and hysteresis
+    const EXERCISE_REGISTRY = {
+        bicep_curl: {
+            id: 'bicep_curl',
+            name: 'Bicep Curls',
+            icon: '💪',
+            category: 'Arms',
+            targetMuscles: 'Arms • Biceps',
+            metricLabel: 'Elbow Angle',
+            supportsArmToggle: true,
+            instructions: [
+                'Keep your upper arm pinned at your side.',
+                'Start with arm fully extended down (>150°).',
+                'Curl upward until forearm reaches tight contraction (<50°).',
+                'Lower fully to lock out before counting the next rep.'
+            ],
+            // Evaluate incoming landmarks
+            evaluate: (lm, state, opts) => {
+                const rScore = Math.min(getLandmarkScore(lm[12]), getLandmarkScore(lm[14]), getLandmarkScore(lm[16]));
+                const lScore = Math.min(getLandmarkScore(lm[11]), getLandmarkScore(lm[13]), getLandmarkScore(lm[15]));
 
-        if (angle > DOWN_THRESHOLD) {
-            stage = 'DOWN';
-            gateArmed = true;
-            stageEl.className = 'stage-badge stage-down';
-            stageEl.textContent = 'DOWN';
-        } else if (angle < UP_THRESHOLD && gateArmed) {
-            stage = 'UP';
-            gateArmed = false; // Close gate until full extension
-            repCount += 1;
+                let useRight = opts.side === 'right' ? true : (opts.side === 'left' ? false : (rScore >= lScore));
+                const shoulder = useRight ? lm[12] : lm[11];
+                const elbow    = useRight ? lm[14] : lm[13];
+                const wrist    = useRight ? lm[16] : lm[15];
+                const visScore = useRight ? rScore : lScore;
 
-            repCountEl.textContent = repCount;
-            repCountEl.classList.add('rep-pulse');
-            setTimeout(() => repCountEl.classList.remove('rep-pulse'), 350);
+                if (visScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Move arm into camera frame',
+                        activeSideName: useRight ? 'Right' : 'Left',
+                        highlightJoint: null
+                    };
+                }
 
-            stageEl.className = 'stage-badge stage-up';
-            stageEl.textContent = 'UP';
+                const angle = calculateAngle(shoulder, elbow, wrist);
+                let isRep = false;
+                let feedback = 'Control the movement';
+
+                if (angle > 150) {
+                    state.stage = 'DOWN';
+                    state.gateArmed = true;
+                    feedback = 'Ready to curl — flex up!';
+                } else if (angle < 50 && state.gateArmed) {
+                    state.stage = 'UP';
+                    state.gateArmed = false;
+                    isRep = true;
+                    feedback = 'Great curl! Now lower fully.';
+                } else if (angle < 90) {
+                    feedback = 'Squeeze bicep at the top';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'DOWN',
+                    stageClass: state.stage === 'UP' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(angle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: useRight ? 'Right' : 'Left',
+                    highlightJoint: elbow
+                };
+            }
+        },
+
+        push_up: {
+            id: 'push_up',
+            name: 'Push-Ups',
+            icon: '🤸‍♂️',
+            category: 'Chest',
+            targetMuscles: 'Chest • Triceps • Core',
+            metricLabel: 'Elbow Angle',
+            supportsArmToggle: true,
+            instructions: [
+                'Set up in a solid plank with hands under shoulders.',
+                'Arms start extended in lockout position (>155°).',
+                'Lower your chest until elbows reach 90° or less.',
+                'Press straight back up to complete one full repetition.'
+            ],
+            evaluate: (lm, state, opts) => {
+                const rScore = Math.min(getLandmarkScore(lm[12]), getLandmarkScore(lm[14]), getLandmarkScore(lm[16]));
+                const lScore = Math.min(getLandmarkScore(lm[11]), getLandmarkScore(lm[13]), getLandmarkScore(lm[15]));
+                let useRight = opts.side === 'right' ? true : (opts.side === 'left' ? false : (rScore >= lScore));
+
+                const shoulder = useRight ? lm[12] : lm[11];
+                const elbow    = useRight ? lm[14] : lm[13];
+                const wrist    = useRight ? lm[16] : lm[15];
+                const hip      = useRight ? lm[24] : lm[23];
+                const ankle    = useRight ? lm[28] : lm[27];
+
+                if (Math.min(rScore, lScore) < 0.22 && (useRight ? rScore : lScore) < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Position body sideways in frame',
+                        activeSideName: useRight ? 'Right' : 'Left',
+                        highlightJoint: null
+                    };
+                }
+
+                const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+                const torsoAngle = calculateAngle(shoulder, hip, ankle);
+                let isRep = false;
+                let feedback = 'Keep core tight';
+
+                // Check form posture (avoid sagging hips or piked butt)
+                if (torsoAngle < 135 && torsoAngle > 40) {
+                    feedback = '⚠️ Keep your back straight in plank!';
+                }
+
+                if (elbowAngle > 155) {
+                    if (state.depthReached) {
+                        isRep = true;
+                        state.depthReached = false;
+                        feedback = 'Solid push-up! Lockout clean.';
+                    } else {
+                        feedback = 'Plank armed — lower chest to floor.';
+                    }
+                    state.stage = 'UP';
+                    state.gateArmed = true;
+                } else if (elbowAngle < 90 && state.gateArmed) {
+                    state.stage = 'DOWN';
+                    state.depthReached = true;
+                    feedback = 'Good depth! Now push the floor away.';
+                } else if (elbowAngle >= 90 && elbowAngle <= 125 && !state.depthReached) {
+                    feedback = 'Go a little lower to reach 90°';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'UP',
+                    stageClass: state.stage === 'DOWN' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(elbowAngle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: useRight ? 'Right' : 'Left',
+                    highlightJoint: elbow
+                };
+            }
+        },
+
+        squat: {
+            id: 'squat',
+            name: 'Squats',
+            icon: '🏋️‍♀️',
+            category: 'Legs',
+            targetMuscles: 'Quadriceps • Glutes',
+            metricLabel: 'Knee Angle',
+            supportsArmToggle: false,
+            instructions: [
+                'Stand tall with feet shoulder-width apart.',
+                'Start in upright standing posture (knee angle >160°).',
+                'Hinge hips and squat down until thighs are parallel (<95°).',
+                'Drive through heels back to full standing to count rep.'
+            ],
+            evaluate: (lm, state) => {
+                const rScore = Math.min(getLandmarkScore(lm[24]), getLandmarkScore(lm[26]), getLandmarkScore(lm[28]));
+                const lScore = Math.min(getLandmarkScore(lm[23]), getLandmarkScore(lm[25]), getLandmarkScore(lm[27]));
+
+                if (rScore < 0.25 && lScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Step back so legs are visible',
+                        activeSideName: 'Both Legs',
+                        highlightJoint: null
+                    };
+                }
+
+                const rKneeAngle = calculateAngle(lm[24], lm[26], lm[28]);
+                const lKneeAngle = calculateAngle(lm[23], lm[25], lm[27]);
+
+                // Use the knee with higher visibility, or average if both are clear
+                const kneeAngle = (rScore >= 0.3 && lScore >= 0.3) ? ((rKneeAngle + lKneeAngle) / 2) : (rScore >= lScore ? rKneeAngle : lKneeAngle);
+                const activeKnee = rScore >= lScore ? lm[26] : lm[25];
+
+                let isRep = false;
+                let feedback = 'Keep chest upright';
+
+                if (kneeAngle > 160) {
+                    if (state.depthReached) {
+                        isRep = true;
+                        state.depthReached = false;
+                        feedback = 'Excellent squat! Full extension.';
+                    } else {
+                        feedback = 'Standing tall — squat down smoothly.';
+                    }
+                    state.stage = 'STANDING';
+                    state.gateArmed = true;
+                } else if (kneeAngle < 95 && state.gateArmed) {
+                    state.stage = 'SQUAT';
+                    state.depthReached = true;
+                    feedback = 'Great parallel depth! Drive back up.';
+                } else if (kneeAngle >= 95 && kneeAngle <= 130 && !state.depthReached) {
+                    feedback = 'Squat a little deeper to parallel!';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'STANDING',
+                    stageClass: state.stage === 'SQUAT' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(kneeAngle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: 'Both Legs',
+                    highlightJoint: activeKnee
+                };
+            }
+        },
+
+        lunge: {
+            id: 'lunge',
+            name: 'Lunges',
+            icon: '🦵',
+            category: 'Legs',
+            targetMuscles: 'Quadriceps • Hamstrings • Glutes',
+            metricLabel: 'Front Knee',
+            supportsArmToggle: false,
+            instructions: [
+                'Begin standing upright with feet hip-width apart.',
+                'Step forward and drop hips until front knee reaches ~90° (<100°).',
+                'Keep torso tall and rear knee hovering above ground.',
+                'Push off front heel back to standing to complete rep.'
+            ],
+            evaluate: (lm, state) => {
+                const rScore = Math.min(getLandmarkScore(lm[24]), getLandmarkScore(lm[26]), getLandmarkScore(lm[28]));
+                const lScore = Math.min(getLandmarkScore(lm[23]), getLandmarkScore(lm[25]), getLandmarkScore(lm[27]));
+
+                if (rScore < 0.25 && lScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Ensure lower body is fully in frame',
+                        activeSideName: 'Legs',
+                        highlightJoint: null
+                    };
+                }
+
+                const rKneeAngle = calculateAngle(lm[24], lm[26], lm[28]);
+                const lKneeAngle = calculateAngle(lm[23], lm[25], lm[27]);
+
+                // In a lunge, the active front knee is the one bent more deeply
+                const frontKneeAngle = Math.min(rKneeAngle, lKneeAngle);
+                const frontKnee = rKneeAngle < lKneeAngle ? lm[26] : lm[25];
+
+                let isRep = false;
+                let feedback = 'Keep posture tall';
+
+                if (frontKneeAngle > 155) {
+                    if (state.depthReached) {
+                        isRep = true;
+                        state.depthReached = false;
+                        feedback = 'Great lunge completed!';
+                    } else {
+                        feedback = 'Standing ready — step forward into lunge.';
+                    }
+                    state.stage = 'STANDING';
+                    state.gateArmed = true;
+                } else if (frontKneeAngle < 100 && state.gateArmed) {
+                    state.stage = 'LUNGE';
+                    state.depthReached = true;
+                    feedback = 'Good lunge depth! Push back to standing.';
+                } else if (frontKneeAngle >= 100 && frontKneeAngle <= 135 && !state.depthReached) {
+                    feedback = 'Bend front knee deeper towards 90°';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'STANDING',
+                    stageClass: state.stage === 'LUNGE' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(frontKneeAngle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: 'Front Leg',
+                    highlightJoint: frontKnee
+                };
+            }
+        },
+
+        shoulder_press: {
+            id: 'shoulder_press',
+            name: 'Shoulder Press',
+            icon: '🙌',
+            category: 'Shoulders',
+            targetMuscles: 'Deltoids • Triceps',
+            metricLabel: 'Elbow & Elevation',
+            supportsArmToggle: false,
+            instructions: [
+                'Hold hands at collarbone / shoulder level.',
+                'Start in the rack position with elbows bent (<100°).',
+                'Press straight up until arms extend overhead (>150°).',
+                'Control downward return to shoulders to register 1 rep.'
+            ],
+            evaluate: (lm, state) => {
+                const rScore = Math.min(getLandmarkScore(lm[12]), getLandmarkScore(lm[14]), getLandmarkScore(lm[16]));
+                const lScore = Math.min(getLandmarkScore(lm[11]), getLandmarkScore(lm[13]), getLandmarkScore(lm[15]));
+
+                if (rScore < 0.25 && lScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Ensure shoulders and arms are framed',
+                        activeSideName: 'Arms',
+                        highlightJoint: null
+                    };
+                }
+
+                const rElbowAngle = calculateAngle(lm[12], lm[14], lm[16]);
+                const lElbowAngle = calculateAngle(lm[11], lm[13], lm[15]);
+                const elbowAngle  = (rScore >= 0.3 && lScore >= 0.3) ? ((rElbowAngle + lElbowAngle) / 2) : (rScore >= lScore ? rElbowAngle : lElbowAngle);
+
+                // Check wrist vertical elevation compared to shoulders (y is inverted: 0 is top)
+                const rWristAbove = lm[16].y < lm[12].y - 0.12;
+                const lWristAbove = lm[15].y < lm[11].y - 0.12;
+                const isOverhead  = (rWristAbove || lWristAbove) && elbowAngle > 150;
+
+                const rWristRack  = lm[16].y >= lm[12].y - 0.08 || rElbowAngle < 100;
+                const lWristRack  = lm[15].y >= lm[11].y - 0.08 || lElbowAngle < 100;
+                const isRack      = (rWristRack && lWristRack) || elbowAngle < 100;
+
+                let isRep = false;
+                let feedback = 'Press overhead with power';
+
+                if (isRack) {
+                    if (state.overheadReached) {
+                        isRep = true;
+                        state.overheadReached = false;
+                        feedback = 'Rep counted! Ready for next press.';
+                    } else {
+                        feedback = 'Rack position set — press upward!';
+                    }
+                    state.stage = 'RACK';
+                    state.gateArmed = true;
+                } else if (isOverhead && state.gateArmed) {
+                    state.stage = 'OVERHEAD';
+                    state.overheadReached = true;
+                    feedback = 'Full lockout overhead! Control descent.';
+                } else if (!isOverhead && !state.overheadReached) {
+                    feedback = 'Press fully overhead until elbows lock';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'RACK',
+                    stageClass: state.stage === 'OVERHEAD' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(elbowAngle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: 'Both Arms',
+                    highlightJoint: lm[14]
+                };
+            }
+        },
+
+        sit_up: {
+            id: 'sit_up',
+            name: 'Sit-Ups',
+            icon: '🧘',
+            category: 'Core',
+            targetMuscles: 'Abdominals • Core',
+            metricLabel: 'Torso Angle',
+            supportsArmToggle: false,
+            instructions: [
+                'Lie on your back on a mat with knees bent.',
+                'Start in reclined/lying position (hip angle >130°).',
+                'Engage abdominals to raise torso toward knees (<80°).',
+                'Lower back to floor under control to complete rep.'
+            ],
+            evaluate: (lm, state) => {
+                const rScore = Math.min(getLandmarkScore(lm[12]), getLandmarkScore(lm[24]), getLandmarkScore(lm[26]));
+                const lScore = Math.min(getLandmarkScore(lm[11]), getLandmarkScore(lm[23]), getLandmarkScore(lm[25]));
+
+                if (rScore < 0.25 && lScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--°',
+                        feedback: 'Ensure side profile is visible on floor',
+                        activeSideName: 'Torso',
+                        highlightJoint: null
+                    };
+                }
+
+                const rHipAngle = calculateAngle(lm[12], lm[24], lm[26]);
+                const lHipAngle = calculateAngle(lm[11], lm[23], lm[25]);
+                const hipAngle  = rScore >= lScore ? rHipAngle : lHipAngle;
+                const activeHip = rScore >= lScore ? lm[24] : lm[23];
+
+                let isRep = false;
+                let feedback = 'Engage your core';
+
+                if (hipAngle > 130) {
+                    if (state.upReached) {
+                        isRep = true;
+                        state.upReached = false;
+                        feedback = 'Full sit-up complete!';
+                    } else {
+                        feedback = 'Flat on floor — curl upward!';
+                    }
+                    state.stage = 'DOWN';
+                    state.gateArmed = true;
+                } else if (hipAngle < 80 && state.gateArmed) {
+                    state.stage = 'UP';
+                    state.upReached = true;
+                    feedback = 'Full contraction! Now lower back down.';
+                } else if (hipAngle >= 80 && hipAngle <= 110 && !state.upReached) {
+                    feedback = 'Raise torso higher towards knees';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'DOWN',
+                    stageClass: state.stage === 'UP' ? 'stage-up' : 'stage-down',
+                    metricText: `${Math.round(hipAngle)}°`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: 'Core',
+                    highlightJoint: activeHip
+                };
+            }
+        },
+
+        jumping_jack: {
+            id: 'jumping_jack',
+            name: 'Jumping Jacks',
+            icon: '⭐',
+            category: 'Cardio',
+            targetMuscles: 'Full Body • Cardiovascular',
+            metricLabel: 'Stance Width',
+            supportsArmToggle: false,
+            instructions: [
+                'Stand upright with feet together and arms at sides.',
+                'Start in closed position (feet together, arms down).',
+                'Jump feet apart while raising arms overhead (open position).',
+                'Jump back with feet together and arms down for 1 rep.'
+            ],
+            evaluate: (lm, state) => {
+                const rScore = Math.min(getLandmarkScore(lm[12]), getLandmarkScore(lm[16]), getLandmarkScore(lm[28]));
+                const lScore = Math.min(getLandmarkScore(lm[11]), getLandmarkScore(lm[15]), getLandmarkScore(lm[27]));
+
+                if (rScore < 0.25 || lScore < 0.25) {
+                    return {
+                        inFrame: false,
+                        stage: 'LOW VIEW',
+                        stageClass: 'stage-alert',
+                        metricText: '--',
+                        feedback: 'Step back to frame full body (head to toe)',
+                        activeSideName: 'Full Body',
+                        highlightJoint: null
+                    };
+                }
+
+                // Arm position: are hands raised overhead?
+                const armsOverhead = (lm[15].y < lm[11].y) && (lm[16].y < lm[12].y);
+                const armsDown     = (lm[15].y > lm[23].y - 0.08) && (lm[16].y > lm[24].y - 0.08);
+
+                // Leg spread: distance between ankles compared to shoulder width
+                const shoulderWidth = Math.abs(lm[11].x - lm[12].x) + 0.001;
+                const ankleWidth    = Math.abs(lm[27].x - lm[28].x);
+                const spreadRatio   = ankleWidth / shoulderWidth;
+
+                const legsTogether = spreadRatio < 1.35;
+                const legsApart    = spreadRatio > 1.75;
+
+                let isRep = false;
+                let feedback = 'Keep a steady jumping rhythm';
+
+                if (armsDown && legsTogether) {
+                    if (state.openReached) {
+                        isRep = true;
+                        state.openReached = false;
+                        feedback = 'Great jumping jack!';
+                    } else {
+                        feedback = 'Feet together & arms down — jump out!';
+                    }
+                    state.stage = 'CLOSED';
+                    state.gateArmed = true;
+                } else if (armsOverhead && legsApart && state.gateArmed) {
+                    state.stage = 'OPEN';
+                    state.openReached = true;
+                    feedback = 'Full extension! Now return together.';
+                } else if (!armsOverhead && legsApart) {
+                    feedback = 'Clap hands overhead!';
+                }
+
+                return {
+                    inFrame: true,
+                    stage: state.stage || 'CLOSED',
+                    stageClass: state.stage === 'OPEN' ? 'stage-up' : 'stage-down',
+                    metricText: `${spreadRatio.toFixed(1)}x`,
+                    feedback: feedback,
+                    isRep: isRep,
+                    activeSideName: 'Full Body',
+                    highlightJoint: lm[16]
+                };
+            }
+        }
+    };
+
+    // ── Application State ───────────────────────────────────────────────────
+    let currentExerciseId = 'bicep_curl';
+    let activeSideOption  = 'auto'; // 'auto' | 'right' | 'left'
+    let exerciseFSMState  = {};
+
+    let repCount          = 0;
+    let workoutSeconds    = 0;
+    let timerInterval     = null;
+    let isPaused          = false;
+    let lastRepTimestamp  = 0;
+    const MIN_REP_INTERVAL_MS = 450; // Hysteresis debounce to prevent double counts
+
+    let poseLandmarker    = null;
+    let mediaStream       = null;
+    let rafId             = null;
+    let lastVideoTime     = -1;
+
+    // ── DOM References ──────────────────────────────────────────────────────
+    const video           = document.getElementById('webcam');
+    const canvas          = document.getElementById('overlay-canvas');
+    const ctx             = canvas.getContext('2d');
+    const drawingUtils    = new DrawingUtils(ctx);
+
+    const exerciseGrid    = document.getElementById('exerciseGrid');
+    const statusPill      = document.getElementById('status-pill');
+    const videoSplash     = document.getElementById('videoSplash');
+    const splashTitle     = document.getElementById('splashTitle');
+    const splashSubtitle  = document.getElementById('splashSubtitle');
+    const feedbackBanner  = document.getElementById('feedbackBanner');
+    const feedbackText    = document.getElementById('feedbackText');
+
+    const startBtn        = document.getElementById('startBtn');
+    const pauseBtn        = document.getElementById('pauseBtn');
+    const stopBtn         = document.getElementById('stopBtn');
+    const resetBtn        = document.getElementById('resetBtn');
+    const armToggleWrap   = document.getElementById('armToggleWrap');
+
+    const hudIcon         = document.getElementById('hudIcon');
+    const hudName         = document.getElementById('hudName');
+    const hudTarget       = document.getElementById('hudTarget');
+    const repCounter      = document.getElementById('repCounter');
+    const stageBadge      = document.getElementById('stageBadge');
+    const metricLabel     = document.getElementById('metricLabel');
+    const metricVal       = document.getElementById('metricVal');
+    const timerDisplay    = document.getElementById('timerDisplay');
+    const activeArmDisplay= document.getElementById('activeArmDisplay');
+    const guideStepsList  = document.getElementById('guideStepsList');
+
+    const summaryModal    = document.getElementById('summaryModal');
+    const modalExSubtitle = document.getElementById('modalExSubtitle');
+    const modalReps       = document.getElementById('modalReps');
+    const modalDuration   = document.getElementById('modalDuration');
+    const modalPace       = document.getElementById('modalPace');
+    const modalRestartBtn = document.getElementById('modalRestartBtn');
+    const modalCloseBtn   = document.getElementById('modalCloseBtn');
+
+    // ── Render Exercise Selection Cards ─────────────────────────────────────
+    function renderExerciseGrid() {
+        exerciseGrid.innerHTML = '';
+        Object.values(EXERCISE_REGISTRY).forEach(ex => {
+            const card = document.createElement('div');
+            card.className = `ex-card ${ex.id === currentExerciseId ? 'selected' : ''}`;
+            card.dataset.id = ex.id;
+            card.innerHTML = `
+                <div class="ex-card-icon">${ex.icon}</div>
+                <div class="ex-card-name">${ex.name}</div>
+                <div class="ex-card-cat">${ex.category}</div>
+            `;
+            card.addEventListener('click', () => selectExercise(ex.id));
+            exerciseGrid.appendChild(card);
+        });
+    }
+
+    // ── Exercise Selection Handler ──────────────────────────────────────────
+    function selectExercise(exerciseId) {
+        if (!EXERCISE_REGISTRY[exerciseId]) return;
+        currentExerciseId = exerciseId;
+        const ex = EXERCISE_REGISTRY[exerciseId];
+
+        // Update selected card styling
+        document.querySelectorAll('.ex-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.id === exerciseId);
+        });
+
+        // Reset rep & FSM state
+        resetWorkoutState();
+
+        // Update HUD display
+        hudIcon.textContent        = ex.icon;
+        hudName.textContent        = ex.name;
+        hudTarget.textContent      = ex.targetMuscles;
+        metricLabel.textContent    = ex.metricLabel;
+        stageBadge.className       = 'stage-pill stage-ready';
+        stageBadge.textContent     = 'READY';
+        metricVal.textContent      = '--';
+        feedbackText.textContent   = `Selected ${ex.name}. Click Start Camera to begin.`;
+        feedbackBanner.className   = 'feedback-banner';
+
+        // Toggle arm selector buttons
+        armToggleWrap.style.display = ex.supportsArmToggle ? 'flex' : 'none';
+
+        // Update guide steps
+        guideStepsList.innerHTML = ex.instructions.map(step => `<li>${step}</li>`).join('');
+
+        splashTitle.textContent    = `Ready for ${ex.name}`;
+        splashSubtitle.innerHTML  = `Position your webcam to frame your full movement, then click <strong>Start Camera</strong>.`;
+    }
+
+    // ── Reset Reps and Movement FSM ─────────────────────────────────────────
+    function resetWorkoutState() {
+        repCount          = 0;
+        exerciseFSMState  = {};
+        repCounter.textContent = '0';
+        stageBadge.className   = 'stage-pill stage-ready';
+        stageBadge.textContent = 'READY';
+        metricVal.textContent  = '--';
+    }
+
+    // ── Workout Stopwatch Timer ─────────────────────────────────────────────
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!isPaused) {
+                workoutSeconds++;
+                const mins = String(Math.floor(workoutSeconds / 60)).padStart(2, '0');
+                const secs = String(workoutSeconds % 60).padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
     }
 
-    // ── Model Initialization (Loaded once on page load) ─────────────────────
-    async function initPoseModel() {
+    function resetTimer() {
+        stopTimer();
+        workoutSeconds = 0;
+        timerDisplay.textContent = '00:00';
+    }
+
+    // ── MediaPipe Tasks Vision Model Loader (Loaded ONCE) ───────────────────
+    async function loadPoseModel() {
         try {
-            setStatus('⏳ Downloading lightweight pose model (one-time ~4MB)...', 'warn');
+            statusPill.textContent = '⏳ Downloading Pose Model (~4MB)...';
 
             const fileset = await FilesetResolver.forVisionTasks(
                 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
@@ -683,48 +1634,50 @@
             });
 
             startBtn.disabled = false;
-            setStatus('✅ Model ready! Click <strong>Start Camera</strong> to begin.', 'ok');
+            statusPill.innerHTML = '✅ <span style="color:#34d399">Model Ready</span>';
         } catch (err) {
-            console.error('[PoseInitError]', err);
-            setStatus(`❌ Failed to load pose model: ${err.message}`, 'error');
+            console.error('[ModelLoadError]', err);
+            statusPill.innerHTML = `❌ <span style="color:#f87171">Model Error: ${err.message}</span>`;
         }
     }
 
     // ── Real-Time Inference Loop ────────────────────────────────────────────
-    const drawingUtils = new DrawingUtils(ctx);
-
-    function onVideoFrame() {
+    function processInferenceFrame() {
         if (!mediaStream) return;
-        rafId = requestAnimationFrame(onVideoFrame);
+        rafId = requestAnimationFrame(processInferenceFrame);
 
+        if (isPaused) return;
         if (!poseLandmarker || video.readyState < 2) return;
         if (video.currentTime === lastVideoTime) return;
         lastVideoTime = video.currentTime;
 
-        // Match canvas coordinate buffer with actual video dimensions
+        // Keep canvas dimensions synced with video
         if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
             canvas.width  = video.videoWidth  || 640;
             canvas.height = video.videoHeight || 480;
         }
 
-        // Run client-side inference
         const results = poseLandmarker.detectForVideo(video, performance.now());
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        const currentEx = EXERCISE_REGISTRY[currentExerciseId];
+
         if (!results.landmarks || results.landmarks.length === 0) {
-            stageEl.className = 'stage-badge stage-ready';
-            stageEl.textContent = 'NO BODY';
+            stageBadge.className = 'stage-pill stage-ready';
+            stageBadge.textContent = 'NO BODY';
+            feedbackText.textContent = 'Step into camera view';
+            feedbackBanner.className = 'feedback-banner warn';
             return;
         }
 
         const lm = results.landmarks[0];
 
-        // Draw pose skeleton connectors & keypoints
+        // Draw skeleton connectors
         drawingUtils.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {
-            color: 'rgba(56, 189, 248, 0.7)',
+            color: 'rgba(56, 189, 248, 0.75)',
             lineWidth: 3
         });
+        // Draw keypoint dots
         drawingUtils.drawLandmarks(lm, {
             color: '#f43f5e',
             fillColor: '#ffffff',
@@ -732,180 +1685,192 @@
             radius: 4
         });
 
-        // Landmark indices:
-        // Right Arm: shoulder=12, elbow=14, wrist=16
-        // Left Arm:  shoulder=11, elbow=13, wrist=15
-        const rShoulder = lm[12], rElbow = lm[14], rWrist = lm[16];
-        const lShoulder = lm[11], lElbow = lm[13], lWrist = lm[15];
+        // Run exercise-specific kinematics evaluation
+        const evalResult = currentEx.evaluate(lm, exerciseFSMState, { side: activeSideOption });
 
-        const rScore = Math.min(getLandmarkScore(rShoulder), getLandmarkScore(rElbow), getLandmarkScore(rWrist));
-        const lScore = Math.min(getLandmarkScore(lShoulder), getLandmarkScore(lElbow), getLandmarkScore(lWrist));
+        // Update HUD
+        stageBadge.className   = `stage-pill ${evalResult.stageClass}`;
+        stageBadge.textContent = evalResult.stage;
+        metricVal.textContent  = evalResult.metricText;
+        feedbackText.textContent = evalResult.feedback;
+        feedbackBanner.className = `feedback-banner ${evalResult.isRep ? 'good' : (evalResult.inFrame ? '' : 'warn')}`;
+        activeArmDisplay.textContent = evalResult.activeSideName || 'Auto';
 
-        let useRight = true;
-        if (selectedArm === 'right') {
-            useRight = true;
-        } else if (selectedArm === 'left') {
-            useRight = false;
-        } else {
-            // Auto mode: choose arm with higher keypoint visibility
-            useRight = rScore >= lScore;
+        // Check rep completion with hysteresis debounce
+        const now = performance.now();
+        if (evalResult.isRep && (now - lastRepTimestamp > MIN_REP_INTERVAL_MS)) {
+            lastRepTimestamp = now;
+            repCount += 1;
+            repCounter.textContent = repCount;
+
+            // Flash counter
+            repCounter.classList.add('pulse');
+            setTimeout(() => repCounter.classList.remove('pulse'), 350);
         }
 
-        armDisplayEl.textContent = useRight ? 'Right' : 'Left';
+        // Highlight active primary joint
+        if (evalResult.highlightJoint) {
+            const jx = evalResult.highlightJoint.x * canvas.width;
+            const jy = evalResult.highlightJoint.y * canvas.height;
 
-        const shoulder = useRight ? rShoulder : lShoulder;
-        const elbow    = useRight ? rElbow    : lElbow;
-        const wrist    = useRight ? rWrist    : lWrist;
-        const activeScore = useRight ? rScore : lScore;
+            ctx.beginPath();
+            ctx.arc(jx, jy, 14, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 3;
+            ctx.stroke();
 
-        if (activeScore < 0.25) {
-            stageEl.className = 'stage-badge stage-ready';
-            stageEl.textContent = 'LOW VIEW';
-            return;
+            ctx.beginPath();
+            ctx.arc(jx, jy, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fill();
+
+            // Unmirrored metric readout near joint
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.font = 'bold 16px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.85)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(evalResult.metricText, -jx - 24, jy - 18);
+            ctx.restore();
         }
-
-        const angle = calculateAngle(shoulder, elbow, wrist);
-        processRepCycle(angle);
-
-        // Highlight active elbow with pulsing target ring
-        const ex = elbow.x * canvas.width;
-        const ey = elbow.y * canvas.height;
-
-        ctx.beginPath();
-        ctx.arc(ex, ey, 14, 0, 2 * Math.PI);
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(ex, ey, 7, 0, 2 * Math.PI);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fill();
-
-        // Draw live angle label on canvas above the elbow
-        ctx.save();
-        ctx.scale(-1, 1); // un-mirror text since canvas has CSS scaleX(-1)
-        ctx.font = 'bold 16px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-        ctx.shadowBlur = 4;
-        ctx.fillText(`${Math.round(angle)}°`, -ex - 20, ey - 20);
-        ctx.restore();
     }
 
     // ── Camera Management ───────────────────────────────────────────────────
     startBtn.addEventListener('click', async () => {
         if (!poseLandmarker) {
-            setStatus('⚠️ Pose model is still loading. Please wait a few seconds.', 'warn');
+            feedbackText.textContent = 'Pose model is loading... please wait a few seconds.';
             return;
         }
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            setStatus('❌ Camera access requires HTTPS or localhost.', 'error');
+        if (!navigator.mediaDevices?.getUserMedia) {
+            feedbackText.textContent = 'Camera requires HTTPS or localhost.';
+            feedbackBanner.className = 'feedback-banner warn';
             return;
         }
 
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    facingMode: 'user'
-                },
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
                 audio: false
             });
-
             video.srcObject = mediaStream;
 
             video.onloadedmetadata = () => {
                 video.play().then(() => {
-                    startBtn.disabled = true;
+                    startBtn.style.display = 'none';
+                    pauseBtn.style.display = 'inline-flex';
+                    pauseBtn.disabled = false;
                     stopBtn.disabled  = false;
-                    placeholder.classList.add('hidden');
-                    setStatus('🟢 Tracking active — camera processed locally in your browser.', 'ok');
-                    runInferenceLoop();
-                }).catch(err => {
-                    setStatus(`❌ Video playback failed: ${err.message}`, 'error');
+                    videoSplash.classList.add('hidden');
+
+                    isPaused = false;
+                    pauseBtn.innerHTML = '<span>⏸ Pause</span>';
+
+                    feedbackText.textContent = 'Camera active — tracking reps locally in browser.';
+                    feedbackBanner.className = 'feedback-banner good';
+
+                    startTimer();
+                    if (rafId) cancelAnimationFrame(rafId);
+                    processInferenceFrame();
+                }).catch(e => {
+                    feedbackText.textContent = `Video error: ${e.message}`;
                 });
             };
         } catch (err) {
-            console.error('[CameraError]', err);
-            let msg = '❌ Camera error: ';
+            let msg = 'Camera error: ';
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                msg += 'Permission was denied. Please allow camera permissions in your browser bar.';
-            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                msg += 'No webcam device found on your system.';
+                msg += 'Permission denied. Please grant webcam permission in your browser.';
+            } else if (err.name === 'NotFoundError') {
+                msg += 'No webcam detected on your device.';
             } else if (err.name === 'NotReadableError') {
-                msg += 'Webcam is currently occupied by another program.';
+                msg += 'Webcam in use by another program.';
             } else {
                 msg += err.message;
             }
-            setStatus(msg, 'error');
+            feedbackText.textContent = msg;
+            feedbackBanner.className = 'feedback-banner warn';
         }
     });
 
-    function runInferenceLoop() {
-        if (rafId) cancelAnimationFrame(rafId);
-        onVideoFrame();
-    }
+    pauseBtn.addEventListener('click', () => {
+        isPaused = !isPaused;
+        if (isPaused) {
+            pauseBtn.innerHTML = '<span>▶ Resume</span>';
+            feedbackText.textContent = 'Workout paused. Click Resume to continue.';
+            feedbackBanner.className = 'feedback-banner warn';
+        } else {
+            pauseBtn.innerHTML = '<span>⏸ Pause</span>';
+            feedbackText.textContent = 'Resuming workout tracking.';
+            feedbackBanner.className = 'feedback-banner good';
+        }
+    });
 
     stopBtn.addEventListener('click', () => {
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream.getTracks().forEach(t => t.stop());
             mediaStream = null;
         }
         video.srcObject = null;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        stopTimer();
+
+        // Show workout summary
+        const mins = workoutSeconds / 60;
+        const pace = mins > 0 ? (repCount / mins).toFixed(1) : repCount;
+        const currentEx = EXERCISE_REGISTRY[currentExerciseId];
+
+        modalExSubtitle.textContent = `Completed ${currentEx.name} workout session.`;
+        modalReps.textContent       = repCount;
+        modalDuration.textContent   = timerDisplay.textContent;
+        modalPace.textContent       = `${pace}/m`;
+
+        summaryModal.classList.add('open');
+
+        // Reset UI buttons
+        startBtn.style.display = 'inline-flex';
         startBtn.disabled = false;
-        stopBtn.disabled  = true;
-        placeholder.classList.remove('hidden');
-
-        stage = 'READY';
-        gateArmed = false;
-        stageEl.className = 'stage-badge stage-ready';
-        stageEl.textContent = 'READY';
-        angleEl.textContent = '--°';
-        armDisplayEl.textContent = '--';
-
-        setStatus('⏸️ Camera stopped. Click <strong>Start Camera</strong> to resume.', '');
+        pauseBtn.style.display = 'none';
+        stopBtn.disabled = true;
+        videoSplash.classList.remove('hidden');
     });
 
     resetBtn.addEventListener('click', () => {
-        repCount  = 0;
-        stage     = 'READY';
-        gateArmed = false;
-
-        repCountEl.textContent   = '0';
-        stageEl.className        = 'stage-badge stage-ready';
-        stageEl.textContent      = 'READY';
-        angleEl.textContent      = '--°';
-
-        setStatus('🔄 Rep count reset to 0.', 'ok');
-        setTimeout(() => {
-            if (mediaStream) {
-                setStatus('🟢 Tracking active — camera processed locally in your browser.', 'ok');
-            } else if (poseLandmarker) {
-                setStatus('✅ Model ready! Click <strong>Start Camera</strong> to begin.', 'ok');
-            }
-        }, 1500);
+        resetWorkoutState();
+        resetTimer();
+        feedbackText.textContent = 'Rep count & timer reset to 0.';
+        feedbackBanner.className = 'feedback-banner good';
     });
 
-    // ── Arm Selector UI Controls ────────────────────────────────────────────
-    armSelector.addEventListener('click', (e) => {
-        const btn = e.target.closest('.segment-btn');
+    // ── Arm Selector Click Handlers ─────────────────────────────────────────
+    armToggleWrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.arm-opt-btn');
         if (!btn) return;
 
-        document.querySelectorAll('#armSelector .segment-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.arm-opt-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        selectedArm = btn.dataset.arm;
+        activeSideOption = btn.dataset.side;
     });
 
-    // ── Initial Start ───────────────────────────────────────────────────────
-    initPoseModel();
+    // ── Summary Modal Buttons ───────────────────────────────────────────────
+    modalRestartBtn.addEventListener('click', () => {
+        summaryModal.classList.remove('open');
+        resetWorkoutState();
+        resetTimer();
+        startBtn.click();
+    });
+
+    modalCloseBtn.addEventListener('click', () => {
+        summaryModal.classList.remove('open');
+        resetWorkoutState();
+        resetTimer();
+    });
+
+    // ── Initialization ──────────────────────────────────────────────────────
+    renderExerciseGrid();
+    selectExercise('bicep_curl');
+    loadPoseModel();
     </script>
 </body>
 </html>
