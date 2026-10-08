@@ -1,10 +1,4 @@
-# Core dependencies
+# Render server dependencies — lightweight, no ML libraries.
+# All pose inference runs in the user's browser via MediaPipe Tasks Vision JS.
 flask>=2.3.0
-# mediapipe 0.10.9 has cp311-manylinux_2_17_x86_64 wheel: safe on Render Python 3.11
-# DO NOT widen to <1.0.0 – that range causes pip to resolve older versions that
-# lack a cp311/cp312 manylinux wheel and fail with ModuleNotFoundError on Render.
-mediapipe==0.10.9
-# opencv-python-headless avoids pulling in X11/GUI libs on headless Linux (Render)
-opencv-python-headless>=4.8.0
-numpy>=1.24.0,<2.0.0
 gunicorn>=21.2.0
