@@ -1,248 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fitness Trainer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>AI Fitness Trainer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .stats-card {
+            display: flex;
+            gap: 32px;
+            background: #1e293b;
+            padding: 16px 32px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            background: #000;
+        }
+
+        video {
+            display: block;
+            width: 640px;
+            max-width: 90vw;
+            height: 480px;
+            object-fit: cover;
+            transform: scaleX(-1);
+            /* Mirror camera for natural view */
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .start-btn {
+            background: #22c55e;
+            color: #000;
+        }
+
+        .stop-btn {
+            background: #ef4444;
+            color: #fff;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <h1>🏋️ Fitness Trainer</h1>
-            <p>AI-powered exercise tracking and feedback</p>
-            <nav class="nav-links">
-                <a href="/video_analysis" class="nav-link">🎬 Video Analysis</a>
-                <a href="/dashboard" class="nav-link">📊 Dashboard</a>
-            </nav>
-        </header>
 
-        <div class="main-content">
-            <!-- ── Camera Panel ── -->
-            <div class="video-container">
-                <!-- Visible webcam element – always in the DOM -->
-                <video id="webcam" autoplay playsinline muted
-                       style="width:480px; height:360px; background:#000; display:block;">
-                </video>
+    <h1>🏋️ AI Bicep Curl Trainer</h1>
 
-                <!-- Rep counter & start button sit directly below the video -->
-                <div style="margin-top:12px; text-align:center;">
-                    <h2 id="rep-display" style="color:#3498db; font-size:2rem; margin:0 0 10px;">Reps: 0</h2>
-                    <button id="startBtn" class="btn primary-btn">Start Camera</button>
-                    <button id="stopBtn"  class="btn secondary-btn" style="margin-left:8px;" disabled>Stop Camera</button>
-                </div>
-            </div>
+    <div class="stats-card">
+        <div class="stat">
+            <div class="stat-val" id="repCounter">0</div>
+            <div>Reps</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val" id="angleDisplay">--°</div>
+            <div>Elbow Angle</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val" id="stateDisplay">ready</div>
+            <div>Stage</div>
+        </div>
+    </div>
 
-            <!-- ── Controls Panel ── -->
-            <div class="controls">
-                <div class="exercise-selection">
-                    <h2>Select Exercise <span id="exercise-count" class="exercise-count"></span></h2>
+    <div class="video-container">
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
 
-                    <div class="category-tabs">
-                        <button class="category-tab active" data-category="all">All</button>
-                        <button class="category-tab" data-category="upper">Upper Body</button>
-                        <button class="category-tab" data-category="lower">Lower Body</button>
-                        <button class="category-tab" data-category="cardio">Cardio</button>
-                    </div>
+    <div class="controls">
+        <button class="start-btn" id="startBtn" onclick="startCamera()">Start Camera</button>
+        <button class="stop-btn" id="stopBtn" onclick="stopCamera()">Stop Camera</button>
+    </div>
 
-                    <div class="exercise-options" id="exercise-grid">
-                        <div class="loading">Loading exercises...</div>
-                    </div>
-
-                    <div id="exercise-info" class="exercise-info hidden">
-                        <div class="info-header">
-                            <span id="info-name"  class="info-name"></span>
-                            <span id="info-type"  class="info-type"></span>
-                        </div>
-                        <p   id="info-description" class="info-description"></p>
-                        <div id="info-note"        class="info-note"></div>
-                    </div>
-                </div>
-
-                <div class="exercise-config">
-                    <h2>Configure Workout</h2>
-                    <div class="config-inputs">
-                        <div class="input-group">
-                            <label for="sets">Sets:</label>
-                            <input type="number" id="sets" min="1" max="10" value="3">
-                        </div>
-                        <div class="input-group">
-                            <label for="reps">Repetitions:</label>
-                            <input type="number" id="reps" min="1" max="30" value="10">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="start-btn" class="btn primary-btn">Start Workout</button>
-                    <button id="stop-btn"  class="btn secondary-btn" disabled>Stop Workout</button>
-                </div>
-
-                <div class="workout-status">
-                    <h2>Current Status</h2>
-                    <!-- Mirror of rep-display for legacy script.js compatibility -->
-                    <h2 id="rep-count" class="live-reps-counter"
-                        style="color:#3498db; font-size:1.8rem; margin:10px 0;">Reps: 0</h2>
-                    <div class="status-display">
-                        <div class="status-item">
-                            <span class="status-label">Exercise:</span>
-                            <span id="current-exercise" class="status-value">None</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Set:</span>
-                            <span id="current-set" class="status-value">0 / 0</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Repetitions:</span>
-                            <span id="current-reps" class="status-value">0 / 0</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Form Score:</span>
-                            <span id="form-score" class="status-value form-score">--</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Grade:</span>
-                            <span id="form-grade" class="status-value form-grade">--</span>
-                        </div>
-                    </div>
-                </div>
-            </div><!-- /.controls -->
-        </div><!-- /.main-content -->
-    </div><!-- /.container -->
-
-    <!-- Legacy exercise-selection logic (categories, start/stop workout, status polling) -->
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         Bulletproof webcam → /process_frame pipeline
-         ═══════════════════════════════════════════════════════════ -->
     <script>
-    (function () {
-        'use strict';
+        const video = document.getElementById('webcam');
+        const repCounter = document.getElementById('repCounter');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const stateDisplay = document.getElementById('stateDisplay');
 
-        const video    = document.getElementById('webcam');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn  = document.getElementById('stopBtn');
-        const repDisplay = document.getElementById('rep-display');
-        // keep the sidebar counter in sync too
-        const repCount   = document.getElementById('rep-count');
+        let stream = null;
+        let captureInterval = null;
+        let isProcessing = false;
 
-        // Off-screen canvas – created once, resized per frame
         const canvas = document.createElement('canvas');
-        const ctx    = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
 
-        let stream          = null;
-        let intervalId      = null;
-        let isSending       = false;   // guard: don't stack requests
-
-        // ── helpers ──────────────────────────────────────────────
-        function setReps(n) {
-            if (repDisplay) repDisplay.innerText = 'Reps: ' + n;
-            if (repCount)   repCount.innerText   = 'Reps: ' + n;
-        }
-
-        // ── frame capture & send ─────────────────────────────────
-        function captureAndSend() {
-            // Must be playing and have real dimensions
-            if (video.videoWidth === 0) return;
-            if (isSending) return;
-
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const base64Image = canvas.toDataURL('image/jpeg', 0.6);
-
-            isSending = true;
-            fetch('/process_frame', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ image: base64Image })
-            })
-            .then(function (res) {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.json();
-            })
-            .then(function (data) {
-                if (data && data.reps !== undefined) {
-                    setReps(data.reps);
-                }
-            })
-            .catch(function (err) {
-                console.warn('[webcam] fetch error:', err);
-            })
-            .finally(function () {
-                isSending = false;
-            });
-        }
-
-        // ── start camera ─────────────────────────────────────────
         async function startCamera() {
-            if (stream) return;                     // already running
-
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert('Camera API unavailable – please use HTTPS and a modern browser.');
-                return;
-            }
-
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 640 }, height: { ideal: 480 } },
-                    audio: false
+                    video: { width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                video.srcObject = stream;
+                await video.play();
+
+                canvas.width = 640;
+                canvas.height = 480;
+
+                // Process frames at 5 FPS to keep Render CPU responsive
+                captureInterval = setInterval(sendFrame, 200);
+            } catch (err) {
+                alert("Camera access denied or unavailable: " + err.message);
+            }
+        }
+
+        function stopCamera() {
+            if (captureInterval) clearInterval(captureInterval);
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+
+        async function sendFrame() {
+            if (isProcessing || video.videoWidth === 0) return;
+            isProcessing = true;
+
+            try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataURL = canvas.toDataURL('image/jpeg', 0.6);
+
+                const res = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
                 });
 
-                video.srcObject = stream;
-
-                // Wait for metadata BEFORE playing, then start the loop
-                video.onloadedmetadata = function () {
-                    video.play()
-                        .then(function () {
-                            console.log('[webcam] playing – starting capture loop');
-                            startBtn.disabled = true;
-                            stopBtn.disabled  = false;
-                            intervalId = setInterval(captureAndSend, 200); // 5 FPS
-                        })
-                        .catch(function (e) {
-                            console.error('[webcam] play() failed:', e);
-                        });
-                };
-            } catch (err) {
-                console.error('[webcam] getUserMedia error:', err);
-                let msg = 'Cannot access camera: ';
-                if (err.name === 'NotAllowedError')  msg += 'permission denied.';
-                else if (err.name === 'NotFoundError') msg += 'no camera found.';
-                else msg += err.message;
-                alert(msg);
+                if (res.ok) {
+                    const data = await res.json();
+                    repCounter.innerText = data.reps;
+                    if (data.angle !== undefined) angleDisplay.innerText = data.angle + "°";
+                    if (data.stage) stateDisplay.innerText = data.stage;
+                }
+            } catch (e) {
+                console.error("Frame upload failed:", e);
+            } finally {
+                isProcessing = false;
             }
         }
-
-        // ── stop camera ──────────────────────────────────────────
-        function stopCamera() {
-            if (intervalId) { clearInterval(intervalId); intervalId = null; }
-            if (stream) {
-                stream.getTracks().forEach(function (t) { t.stop(); });
-                stream = null;
-            }
-            video.srcObject = null;
-            startBtn.disabled = false;
-            stopBtn.disabled  = true;
-            fetch('/stop_camera', { method: 'POST' }).catch(function () {});
-        }
-
-        // ── button wiring ─────────────────────────────────────────
-        startBtn.addEventListener('click', startCamera);
-        stopBtn.addEventListener('click',  stopCamera);
-        window.addEventListener('beforeunload', stopCamera);
-
-        // expose for legacy script.js
-        window.startWebcamFeed = startCamera;
-        window.stopWebcamFeed  = stopCamera;
-
-        // Also wire the legacy "start-camera-btn" if present (inside placeholder)
-        var legacyBtn = document.getElementById('start-camera-btn');
-        if (legacyBtn) legacyBtn.addEventListener('click', startCamera);
-    })();
     </script>
 </body>
+
 </html>
