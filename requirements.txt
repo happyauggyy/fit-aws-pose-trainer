@@ -1,17 +1,10 @@
 # Core dependencies
-flask>=2.0.0
-opencv-python>=4.5.0
-mediapipe>=0.10.0,<1.0.0
-numpy>=1.21.0
-pyyaml>=6.0.0
-
-# Video processing (H.264 codec support for browser-compatible videos)
-imageio>=2.31.0
-imageio-ffmpeg>=0.4.8
-
-# Production server & AWS SDK
-gunicorn>=20.1.0
-boto3>=1.26.0
-
-# Optional: For better chart rendering in dashboard (included via CDN)
-# matplotlib>=3.5.0
+flask>=2.3.0
+# mediapipe 0.10.9 has cp311-manylinux_2_17_x86_64 wheel: safe on Render Python 3.11
+# DO NOT widen to <1.0.0 – that range causes pip to resolve older versions that
+# lack a cp311/cp312 manylinux wheel and fail with ModuleNotFoundError on Render.
+mediapipe==0.10.9
+# opencv-python-headless avoids pulling in X11/GUI libs on headless Linux (Render)
+opencv-python-headless>=4.8.0
+numpy>=1.24.0,<2.0.0
+gunicorn>=21.2.0
