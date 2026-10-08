@@ -2,13 +2,12 @@ import os
 import base64
 import numpy as np
 import cv2
-import mediapipe as mp
+from mediapipe.python.solutions import pose as mp_pose
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
 # Initialize MediaPipe Pose detector globally
-mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
     static_image_mode=True,
     model_complexity=0,
@@ -63,20 +62,20 @@ def process_frame():
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
 
-            # Default to Right Arm (12: Shoulder, 14: Elbow, 16: Wrist)
-            shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-            elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-            wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value]
+            # Right arm indices: 12 (Right Shoulder), 14 (Right Elbow), 16 (Right Wrist)
+            shoulder = landmarks[12]
+            elbow = landmarks[14]
+            wrist = landmarks[16]
 
-            # If right arm isn't visible, fall back to left arm (11, 13, 15)
+            # If right arm is not clearly visible, switch to left arm: 11, 13, 15
             if elbow.visibility < 0.5:
-                shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value]
-                elbow = landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value]
-                wrist = landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value]
+                shoulder = landmarks[11]
+                elbow = landmarks[13]
+                wrist = landmarks[15]
 
             angle = calculate_angle(shoulder, elbow, wrist)
 
-            # Rep counting logic
+            # Bicep curl state logic
             if angle > 150:
                 global_exercise_stage = "down"
             elif angle < 50 and global_exercise_stage == "down":
